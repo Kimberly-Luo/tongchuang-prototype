@@ -1,0 +1,25 @@
+{
+  "name": "同窗 · 家教匹配体验版",
+  "appid": "",
+  "description": "所有身份与支付均为模拟",
+  "versionName": "0.1.0",
+  "versionCode": "10",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "usingComponents": true,
+    "setting": {
+      "urlCheck": true
+    }
+  },
+  "h5": {
+    "title": "同窗 · 家教匹配",
+    "router": {
+      "mode": "hash"
+    }
+  },
+  "uniStatistics": {
+    "enable": false
+  },
+  "vueVersion": "3"
+}
