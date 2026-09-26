@@ -29,3 +29,11 @@
 - 2026-09-24 再次检查 `Tencent/tdesign-miniprogram` 与 `TDesignOteam/tdesign-uniapp-starter`，继续复用现有表单、按钮、标签和分步信息结构，没有引入第二套 UI 框架。
 - 保持项目当前锁定的 `@tdesign/uniapp` 0.8.1，避免为一个表单升级整套组件。GitHub 发布页显示后续版本已有 Form 与 Upload 更新，真实接入文件上传时再单独升级和真机验证。
 - 学生在校材料上传本轮使用明确标记的模拟人工核验。这样既符合当前“非真实交易 Prototype”边界，也避免演示版请求相册或文件权限。
+
+## v0.5 H5 视觉与动效重构
+
+- 视觉方向：现代校园刊物 × 海派建筑几何。使用纸白底、墨蓝正文、单一钴蓝强调色、方形交互控件、编号排版与候选人档案式卡片；未使用生成头像或装饰图片。
+- 保留 `@tdesign/uniapp` 0.8.1 作为按钮、图标、标签、弹层与固定导航的交互底座，通过项目设计令牌重塑外观，没有混入第二套组件库。
+- 引入 `gsap` 3.15.0 核心包。Vue 生命周期与清理模式参考 GreenSock 官方 `gsap-skills/examples/vue/app.vue`，固定提交 `aed9cfd3277740755f6bfc1155c7aa645403b760`；采用 `gsap.context()`、作用域选择器和卸载回收。
+- GSAP 上游仓库：`greensock/GSAP`，检索时固定 HEAD `13e2b790546426a1a2e0e9b409f3f8dc6d6611f2`。包声明为 Standard “No Charge” License，许可入口见 `licenses/GSAP-LICENSE-NOTE.md`。
+- 动效只用于首屏进入、页面切换、表单阶段切换和触控反馈；`prefers-reduced-motion: reduce` 时关闭动效。

@@ -10,4 +10,5 @@ onHide(() => {
   console.log("App Hide");
 });
 </script>
-<style></style>
+<!-- Global by design: the index page visual system must also reach child form components. -->
+<style src="./pages/index/mobile.css"></style>

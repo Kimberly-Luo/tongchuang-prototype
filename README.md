@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- H5 端采用“现代校园刊物 × 海派建筑几何”视觉系统：墨蓝、钴蓝与纸白，方形控件、编号排版和候选人档案式卡片；适配 320–480px 手机宽度。
+- 使用 GSAP 3.15.0 为页面切换、三步需求表单和内容揭示提供可中断动效，并遵守系统“减少动态效果”设置。
 - 家长可多选数学、英语、语文、物理、化学、生物、政治、历史、地理，再填写年级、授课方式、预算、位置和多个固定课次。
 - 按学段、全部所选科目、时间、价格、性别偏好和通勤规则推荐 3–5 名学生。
 - 同一学生覆盖全部课次优先；推荐结果解释时间和费用。
@@ -48,10 +50,11 @@ npm run build:mp-weixin
 
 - 工程模板：`TDesignOteam/tdesign-uniapp-starter`，固定来源提交 `4613916f64b54b58a6134c0e1e830511550fe517`。
 - 组件库：`@tdesign/uniapp` 0.8.1。
+- 动效：`gsap` 3.15.0；Vue 生命周期写法参考 GreenSock 官方 `gsap-skills/examples/vue/app.vue`，固定来源提交 `aed9cfd3277740755f6bfc1155c7aa645403b760`。
 - 页面模式参考：`TDesignOteam/tdesign-uniapp-starter-apply`（MIT），固定复用文件 `custom-tab-bar.vue`、`tag-filter.vue`、`activity-filter-popup.vue` 的交互模式；在本项目中改为单页视图切换、单选标签和老师资料底部弹层。
 - 许可：MIT，见 [LICENSE](LICENSE)。原模板说明保存在 [UPSTREAM-README.md](UPSTREAM-README.md)。
 
-本项目重写了页面、状态流程和匹配规则；保留模板的 Uniapp + Vue + TDesign 基础结构。产品临时名“同窗”与复旦大学无官方隶属或背书关系。
+本项目重写了页面、状态流程和匹配规则；保留模板的 Uniapp + Vue + TDesign 基础结构。GSAP 依据其 Standard “No Charge” License 使用，许可入口记录在 `licenses/GSAP-LICENSE-NOTE.md`。产品临时名“同窗”与复旦大学无官方隶属或背书关系。
 
 ## 当前边界
 

@@ -1,11 +1,16 @@
 <script setup>
-import {ref,computed} from 'vue';
+import {ref,computed,nextTick,onMounted,onUnmounted,watch} from 'vue';
+import {gsap} from 'gsap';
 import ChoiceGroup from './ChoiceGroup.vue';
 import {grades,subjects,subjectText,weekdays,timeText,validateRequest} from '../domain.mjs';
 const props=defineProps({form:Object});
 const emit=defineEmits(['submit','about']);
 const stage=ref(0),extras=ref(false),validation=ref('');
+const flowRoot=ref(null);
+let stageContext;
 const names=['学习需求','时间安排','授课与预算'];
+const stageTitles=['先找到同频的人，再开始一节课','把每一次见面，安排得刚刚好','费用说在前面，合作才更轻松'];
+const stageSubtitles=['从孩子真正需要的科目开始，认识合适的复旦同学。','先定每周课次，再为生活留出可以调整的余地。','上海线下，全国线上；课时与通勤分开计算。'];
 const hours=computed(()=>props.form.sessions.reduce((n,g)=>n+(g.options[0].end-g.options[0].start)/60,0));
 const range=computed(()=>({'小学':'160–200','初中':'180–220','高中':'220–270','竞赛':'280–330'}[props.form.grade]));
 function move(n){stage.value=n;validation.value='';uni.pageScrollTo({scrollTop:0,duration:120});}
@@ -13,10 +18,24 @@ function changeDay(s,e){s.day=Number(e.detail.value)+1;s.end=s.start+(s.day>=6?1
 function changeTime(s,e){const [h,m]=e.detail.value.split(':').map(Number);s.start=h*60+m;s.end=s.start+(s.day>=6?120:60);}
 function addSession(){props.form.sessions.push({options:[{day:7,start:840,end:960}]});}
 function finish(){try{validateRequest(props.form);validation.value='';emit('submit');}catch(e){validation.value=e.message;}}
+function reducedMotion(){return typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;}
+async function revealStage(){
+ await nextTick();
+ const scope=flowRoot.value?.$el||flowRoot.value;
+ if(!scope||reducedMotion()||typeof scope.querySelector!=='function')return;
+ stageContext?.revert();
+ stageContext=gsap.context(()=>{
+  gsap.fromTo('.flow-title, .flow-subtitle, .flow-serial',{autoAlpha:0,y:15},{autoAlpha:1,y:0,duration:.5,stagger:.045,ease:'power3.out'});
+  gsap.fromTo('.stage-content > *',{autoAlpha:0,y:18},{autoAlpha:1,y:0,duration:.52,stagger:.055,ease:'power3.out',delay:.08,clearProps:'transform,opacity,visibility'});
+ },scope);
+}
+onMounted(revealStage);
+watch(stage,revealStage);
+onUnmounted(()=>stageContext?.revert());
 </script>
 <template>
- <view class="request-flow">
-  <view class="flow-heading"><text class="kicker">复旦学生 · 家教匹配</text><text class="flow-title">{{['找到适合孩子的同学','把合适的时间留出来','让每一笔费用都清楚'][stage]}}</text><text class="flow-subtitle">{{['从学习需求开始，合适的人慢慢认识。','先定每周课次，每次可选几个备选时间。','上海线下，全国线上。预算包含通勤补贴。'][stage]}}</text></view>
+ <view ref="flowRoot" class="request-flow">
+  <view class="flow-heading"><view class="flow-copy"><text class="kicker">复旦学生 · 家教匹配</text><text class="flow-title">{{stageTitles[stage]}}</text><text class="flow-subtitle">{{stageSubtitles[stage]}}</text></view><view class="flow-serial"><text>0{{stage+1}}</text><text>OF / 03</text></view></view>
   <view class="flow-steps"><button v-for="(n,i) in names" :key="n" :class="['flow-step',{current:stage===i,done:stage>i}]" @tap="i<stage && move(i)"><text class="step-number">{{stage>i?'✓':`0${i+1}`}}</text><text>{{n}}</text></button></view>
   <view v-if="stage===0" class="stage-content">
    <view class="stage-block"><ChoiceGroup v-model="form.grade" :options="grades" :columns="4" title="孩子目前的学习阶段" /></view>
