@@ -51,7 +51,7 @@ function run(fn){error.value='';notice.value='';try{fn();save();}catch(e){error.
 function go(to){page.value=to;error.value='';notice.value='';detail.value=null; if(to==='student')role.value='tutor';if(to==='request'||to==='results')role.value='parent';uni.pageScrollTo({scrollTop:0,duration:150});}
 function find(){run(()=>{results.value=match(state,form,now());state.request=clone(form);go('results');});}
 function select(c){run(()=>{const o=invite(state,form,c.tutor.id,now());currentTutorId.value=o.tutorId;detail.value=null;go('orders');notice.value='邀请已发送。可切换学生视角，体验接受试课。';});}
-function action(o,type){run(()=>{act(state,o.id,type,role.value,now());notice.value=({accept:'已接受邀请，联系方式已模拟解锁；请由家长确认试课安排。',confirmTrial:'试课时间、方式和费用快照已确认。',payTrial:'已模拟家长付款，切换学生视角确认收款。',receive:'已模拟确认收款，可以体验完成试课。',finish:'已模拟试课结束，请双方分别确认结果。',success:'你的结果已记录。只有双方成功才产生服务费。',fail:'已结束本次匹配，不收平台服务费。',payService:'模拟结算已完成，没有实际扣款。'})[type]||'状态已更新';});}
+async function action(o,type){run(()=>{act(state,o.id,type,role.value,now());notice.value=({accept:'已接受邀请，联系方式已模拟解锁；请由家长确认试课安排。',confirmTrial:'试课时间、方式和费用快照已确认。',payTrial:'已模拟家长付款，切换学生视角确认收款。',receive:'已模拟确认收款，可以体验完成试课。',finish:'已模拟试课结束，请双方分别确认结果。',success:'你的结果已记录。只有双方成功才产生服务费。',fail:'已结束本次匹配，不收平台服务费。',payService:'模拟结算已完成，没有实际扣款。'})[type]||'状态已更新';});await nextTick();uni.pageScrollTo({scrollTop:0,duration:220});}
 function switchRole(v){role.value=v;if(v==='tutor'&&state.orders[0])currentTutorId.value=state.orders[0].tutorId;}
 function left(deadline){const mins=Math.max(0,Math.ceil((deadline-now())/60000));return `${Math.floor(mins/60)} 小时 ${mins%60} 分钟`;}
 function demoAdvance(h){run(()=>{state.offset+=h*HOUR;expire(state,now());notice.value=`演示时间已推进 ${h} 小时`;});}
