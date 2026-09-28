@@ -9,7 +9,7 @@ const stage=ref(0),extras=ref(false),validation=ref('');
 const flowRoot=ref(null);
 let stageContext;
 const names=['学习需求','时间安排','授课与预算'];
-const stageTitles=['先找到同频的人，再开始一节课','把每一次见面，安排得刚刚好','费用说在前面，合作才更轻松'];
+const stageTitles=[['先找到同频的人，','再开始一节课'],['把每一次见面，','安排得刚刚好'],['费用说在前面，','合作才更轻松']];
 const stageSubtitles=['从孩子真正需要的科目开始，认识合适的复旦同学。','先定每周课次，再为生活留出可以调整的余地。','上海线下，全国线上；课时与通勤分开计算。'];
 const hours=computed(()=>props.form.sessions.reduce((n,g)=>n+(g.options[0].end-g.options[0].start)/60,0));
 const range=computed(()=>({'小学':'160–200','初中':'180–220','高中':'220–270','竞赛':'280–330'}[props.form.grade]));
@@ -35,7 +35,7 @@ onUnmounted(()=>stageContext?.revert());
 </script>
 <template>
  <view ref="flowRoot" class="request-flow">
-  <view class="flow-heading"><view class="flow-copy"><text class="kicker">复旦学生 · 家教匹配</text><text class="flow-title">{{stageTitles[stage]}}</text><text class="flow-subtitle">{{stageSubtitles[stage]}}</text></view><view class="flow-serial"><text>0{{stage+1}}</text><text>OF / 03</text></view></view>
+  <view class="flow-heading"><view class="flow-copy"><text class="kicker">复旦学生 · 家教匹配</text><view class="flow-title"><text v-for="line in stageTitles[stage]" :key="line" class="flow-title-line">{{line}}</text></view><text class="flow-subtitle">{{stageSubtitles[stage]}}</text></view><view class="flow-serial"><text>0{{stage+1}}</text><text>OF / 03</text></view></view>
   <view class="flow-steps"><button v-for="(n,i) in names" :key="n" :class="['flow-step',{current:stage===i,done:stage>i}]" @tap="i<stage && move(i)"><text class="step-number">{{stage>i?'✓':`0${i+1}`}}</text><text>{{n}}</text></button></view>
   <view v-if="stage===0" class="stage-content">
    <view class="stage-block"><ChoiceGroup v-model="form.grade" :options="grades" :columns="4" title="孩子目前的学习阶段" /></view>
