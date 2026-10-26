@@ -22,7 +22,8 @@ function persist(){try{uni.setStorageSync(storageKey,clone(state));}catch{throw 
 function notify(text){message.value=text;error.value='';}
 function run(fn){message.value='';error.value='';try{fn();persist();}catch(e){error.value=e.message;}}
 function go(to){page.value=to;message.value='';error.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
-function enterStudent(){go(student.value?'student-list':'student-register');}
+function showSuccessNotice(){const claim=lastClaim.value;if(claim?.status==='success'&&!claim.studentNotified){claim.studentNotified=true;uni.showModal({title:'本次接单已完成',content:'家长需求已移出匹配池。下次接单请重新注册，并重新选择科目和可授课时间。',showCancel:false,confirmText:'知道了'});persist();}}
+function enterStudent(){go(student.value?'student-list':'student-register');showSuccessNotice();}
 function enterParent(){demoParent.value=false;go(parentRequest.value?'parent-status':'parent-form');}
 function sendCode(){error.value='';if(!validEmail(studentForm.email)){error.value='邮箱后缀只支持 @m.fudan.edu.cn';return;}studentForm.verifiedEmail=normalizeEmail(studentForm.email);studentForm.demoCode='2026';notify('模拟验证码 2026 已填入，没有发送真实邮件。');}
 function verifyEmail(){error.value='';if(!validEmail(studentForm.email)||studentForm.demoCode!=='2026'||normalizeEmail(studentForm.email)!==studentForm.verifiedEmail){error.value='请先获取当前邮箱的模拟验证码';return;}registerStep.value=1;message.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
@@ -31,7 +32,7 @@ function registerAgain(){Object.assign(studentForm,{email:student.value?.email||
 function publish(){run(()=>{publishRequest(state,{...clone(parentForm),low:Math.round(Number(parentForm.low)*100),high:Math.round(Number(parentForm.high)*100)},now());demoParent.value=false;go('parent-status');notify('需求已进入本机匹配池，等待合适的学生选择。');});}
 function editParent(){const r=parentRequest.value;if(!r||r.isDemo)return;Object.assign(parentForm,{...clone(r),low:r.low/100,high:r.high/100});go('parent-form');}
 function chooseParent(id){run(()=>{claimRequest(state,id,now());go('student-contact');notify('已为你保留这条需求 12 小时，请主动联系家长并由双方分别确认。');});}
-function respond(role,result){run(()=>{const claim=role==='student'?currentClaim.value:parentClaim.value;if(!claim)throw Error('没有待确认的联系');confirmContact(state,claim.id,role,result,now());go(role==='student'?'student-list':'parent-status');notify(claim.status==='success'?'双方已联系好。家长需求已移出匹配池，学生本次接单结束。':claim.status==='declined'?'已结束这次联系，家长需求已退回匹配池。':'已记录“联系好了”，仍需另一方在 12 小时内确认。');});}
+function respond(role,result){run(()=>{const claim=role==='student'?currentClaim.value:parentClaim.value;if(!claim)throw Error('没有待确认的联系');confirmContact(state,claim.id,role,result,now());go(role==='student'?'student-list':'parent-status');notify(claim.status==='success'?'双方已联系好。家长需求已移出匹配池，学生本次接单结束。':claim.status==='declined'?'已结束这次联系，家长需求已退回匹配池。':'已记录“联系好了”，仍需另一方在 12 小时内确认。');if(role==='student'&&claim.status==='success')showSuccessNotice();});}
 function showDemoParent(){state.demoParentRequestId=currentClaim.value?.requestId;demoParent.value=true;run(()=>go('parent-status'));}
 function remain(claim){const seconds=Math.max(0,Math.ceil((claim.deadline-now())/1000));return `${String(Math.floor(seconds/3600)).padStart(2,'0')}:${String(Math.floor(seconds%3600/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;}
 function refreshExpiry(){clock.value=Date.now();const before=state.claims.filter(c=>c.status==='active').length;expireClaims(state,now());if(before!==state.claims.filter(c=>c.status==='active').length){run(()=>{if(page.value==='student-contact')go('student-list');notify('12 小时内双方未同时确认，需求已退回匹配池。');});}}
