@@ -37,3 +37,11 @@
 - 引入 `gsap` 3.15.0 核心包。Vue 生命周期与清理模式参考 GreenSock 官方 `gsap-skills/examples/vue/app.vue`，固定提交 `aed9cfd3277740755f6bfc1155c7aa645403b760`；采用 `gsap.context()`、作用域选择器和卸载回收。
 - GSAP 上游仓库：`greensock/GSAP`，检索时固定 HEAD `13e2b790546426a1a2e0e9b409f3f8dc6d6611f2`。包声明为 Standard “No Charge” License，许可入口见 `licenses/GSAP-LICENSE-NOTE.md`。
 - 动效只用于首屏进入、页面切换、表单阶段切换和触控反馈；`prefers-reduced-motion: reduce` 时关闭动效。
+
+
+## 2026-10-26 平台流程初版
+
+- 按用户要求先实现新流程，视觉风格后续讨论。继续使用现有 uni-app、Vue、TDesign，未引入第二套框架。
+- GitHub 连接器检索了 `TDesignOteam/tdesign-uniapp-starter-apply` 的 `tag-filter.vue`，本轮检索未返回文件；直接复用本地已有、已记录许可来源的 ChoiceGroup，详见本文件早期条目。
+- WeeklyPeriods 使用同样的语义选择按钮，增加星期×粗时段网格；保留原 MIT 许可证。新 UI 只做可用的手机布局。
+- 新规则集中于 `src/platform.mjs`，旧试课组件和引擎保留但不在新版首页使用。

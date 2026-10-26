@@ -1,141 +1,135 @@
 <script setup>
-import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
-import { gsap } from 'gsap';
-import RequestForm from '../../components/RequestForm.vue';
-import AppTabs from '../../components/AppTabs.vue';
-import TutorOnboarding from '../../components/TutorOnboarding.vue';
-import { createState, initialRequest, migrateState, match, diagnose, invite, act, addDemoTutor, expire, clone, money, subjectText, slotText, statusText, HOUR, activeOrder } from '../../domain.mjs';
-const storageKey='tongchuang-v01';
+import {computed,onUnmounted,reactive,ref} from 'vue';
+import ChoiceGroup from '../../components/ChoiceGroup.vue';
+import WeeklyPeriods from '../../components/WeeklyPeriods.vue';
+import {HOUR,SUBJECTS,clone,money,slotLabel,normalizeEmail,validEmail,createPlatformState,registerStudent,publishRequest,listRequests,claimRequest,contactDetail,confirmContact,expireClaims} from '../../platform.mjs';
+const storageKey='tongchuang-platform-v4';
 let saved;
-try { saved=uni.getStorageSync(storageKey); if(saved?.version===1)saved=migrateState(saved);if(saved && (saved.version!==2 || !Array.isArray(saved.tutors) || !Array.isArray(saved.orders))) saved=null; } catch { saved=null; }
-const state=reactive(saved||createState());
-const form=reactive(clone(state.request));
-const page=ref('request'), role=ref('parent'), results=ref([]), detail=ref(null), notice=ref(''), error=ref(''), showTools=ref(false);
-const currentTutorId=ref('t1');
-const clock=ref(Date.now());
-const appRoot=ref(null);
-let motionContext, viewTween;
+try{saved=uni.getStorageSync(storageKey);if(saved?.version!==4||!Array.isArray(saved.students)||!Array.isArray(saved.requests)||!Array.isArray(saved.claims))saved=null;}catch{saved=null;}
+const state=reactive(saved||createPlatformState());
+const page=ref('home'),message=ref(''),error=ref(''),registerStep=ref(0),demoParent=ref(false),clock=ref(Date.now());
+const student=computed(()=>state.students.find(s=>s.id===state.studentId));
+const currentClaim=computed(()=>state.claims.find(c=>c.studentId===state.studentId&&c.status==='active'));
+const lastClaim=computed(()=>state.claims.find(c=>c.studentId===state.studentId));
+const parentRequest=computed(()=>state.requests.find(r=>r.id===(demoParent.value?state.demoParentRequestId:state.parentRequestId)));
+const parentClaim=computed(()=>state.claims.find(c=>c.id===parentRequest.value?.claimId));
+const parents=computed(()=>listRequests(state,clock.value+state.offset));
+const activeDetail=computed(()=>{if(!currentClaim.value)return null;try{return contactDetail(state,currentClaim.value.id,clock.value+state.offset);}catch{return null;}});
+const studentForm=reactive({email:'',demoCode:'',verifiedEmail:'',name:'',subjects:[],slots:[],low:230,high:270,gender:'女'});
+const parentForm=reactive({name:'',subjects:[],slots:[],low:230,high:270,gender:'无所谓',contactType:'微信',contact:'',note:''});
 const now=()=>clock.value+state.offset;
-const currentTutor=computed(()=>state.tutors.find(t=>t.id===currentTutorId.value));
-const orders=computed(()=>role.value==='parent'?state.orders:state.orders.filter(o=>o.tutorId===currentTutorId.value));
-const diagnostics=computed(()=>results.value.length?[]:diagnose(state,form,now()));
-const save=()=>{try{uni.setStorageSync(storageKey,clone(state));}catch{error.value='本地保存失败，请保持页面打开；刷新后可能丢失进度。';}};
-const tick=setInterval(()=>{clock.value=Date.now();const prev=state.orders.map(o=>o.status).join();expire(state,now());if(prev!==state.orders.map(o=>o.status).join())save();},15000);
-function motionScope(){return appRoot.value?.$el||appRoot.value;}
-function prefersReducedMotion(){return typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;}
-async function revealView(){
- await nextTick();
- const scope=motionScope();
- if(!scope||prefersReducedMotion()||typeof scope.querySelector!=='function')return;
- const screen=scope.querySelector('.motion-enter');
- if(!screen)return;
- const pieces=screen.children?.length?[...screen.children].slice(0,8):[screen];
- viewTween?.kill();
- viewTween=gsap.fromTo(pieces,{autoAlpha:0,y:24},{autoAlpha:1,y:0,duration:.62,stagger:.055,ease:'power3.out',clearProps:'transform,opacity,visibility'});
-}
-onMounted(()=>{
- const scope=motionScope();
- if(scope&&!prefersReducedMotion()){
-  motionContext=gsap.context(()=>{
-   gsap.from('.motion-strip',{autoAlpha:0,y:-10,duration:.42,ease:'power2.out'});
-   gsap.from('.motion-brand',{autoAlpha:0,x:-18,duration:.7,ease:'power3.out',delay:.08});
-   gsap.from('.motion-info',{autoAlpha:0,x:14,duration:.7,ease:'power3.out',delay:.12});
-  },scope);
- }
- revealView();
-});
-watch(page,()=>revealView());
-onUnmounted(()=>{clearInterval(tick);viewTween?.kill();motionContext?.revert();});
-expire(state,now());
-function run(fn){error.value='';notice.value='';try{fn();save();}catch(e){error.value=e.message;}}
-function go(to){page.value=to;error.value='';notice.value='';detail.value=null; if(to==='student')role.value='tutor';if(to==='request'||to==='results')role.value='parent';uni.pageScrollTo({scrollTop:0,duration:150});}
-function find(){run(()=>{results.value=match(state,form,now());state.request=clone(form);go('results');});}
-function select(c){run(()=>{const o=invite(state,form,c.tutor.id,now());currentTutorId.value=o.tutorId;detail.value=null;go('orders');notice.value='邀请已发送。可切换学生视角，体验接受试课。';});}
-async function action(o,type){run(()=>{act(state,o.id,type,role.value,now());notice.value=({accept:'已接受邀请，联系方式已模拟解锁；请由家长确认试课安排。',confirmTrial:'试课时间、方式和费用快照已确认。',payTrial:'已模拟家长付款，切换学生视角确认收款。',receive:'已模拟确认收款，可以体验完成试课。',finish:'已模拟试课结束，请双方分别确认结果。',success:'你的结果已记录。只有双方成功才产生服务费。',fail:'已结束本次匹配，不收平台服务费。',payService:'模拟结算已完成，没有实际扣款。'})[type]||'状态已更新';});await nextTick();uni.pageScrollTo({scrollTop:0,duration:220});}
-function switchRole(v){role.value=v;if(v==='tutor'&&state.orders[0])currentTutorId.value=state.orders[0].tutorId;}
-function left(deadline){const mins=Math.max(0,Math.ceil((deadline-now())/60000));return `${Math.floor(mins/60)} 小时 ${mins%60} 分钟`;}
-function demoAdvance(h){run(()=>{state.offset+=h*HOUR;expire(state,now());notice.value=`演示时间已推进 ${h} 小时`;});}
-function reset(){uni.showModal({title:'重置体验数据',content:'仅清空此设备的模拟需求和试课记录。',confirmText:'重置',success:r=>{if(r.confirm){Object.assign(state,createState());Object.assign(form,initialRequest());results.value=[];go('request');save();}}});}
-function resume(){run(()=>{const t=currentTutor.value;if(state.orders.some(o=>o.tutorId===t.id&&activeOrder(o)))throw Error('当前试课尚未结束，请先完成流程');if(t.verifiedUntil<now())throw Error('请先完成模拟年度复验');t.active=!t.active;notice.value=t.active?'已重新接单，成功课次仍保持占用。':'已暂停接单';});}
-function renew(){run(()=>{currentTutor.value.verifiedUntil=new Date(new Date(now()).getFullYear()+1,8,30,23,59).getTime();notice.value='已模拟 9 月邮箱复验；未发送真实邮件。';});}
-function releaseBlock(orderId){run(()=>{currentTutor.value.blocks=currentTutor.value.blocks.filter(b=>b.orderId!==orderId);notice.value='该合作的固定时间已释放';});}
-function applySuggestion(type){if(type==='try_online'){form.mode='均可';find();return;}if(type==='relax_gender'){form.gender='无所谓';find();return;}go('request');notice.value=type==='edit_time'?'请在第二步增加每次课的备选时间。':type==='edit_budget'?'请在第三步调整预算。':'请调整科目后重新匹配。';}
-function completeOnboarding(profile){run(()=>{const t=addDemoTutor(state,profile,now());currentTutorId.value=t.id;role.value='tutor';go('student');notice.value='模拟审核已通过，资料已加入本机匹配池。';});}
-function resultText(x){return x==='success'?'已确认成功':x==='fail'?'不继续合作':'尚未确认';}
-function step(o){return ({invited:0,arranging:1,accepted:1,paid:1,scheduled:2,review:3,success:4})[o.status]??0;}
+function persist(){try{uni.setStorageSync(storageKey,clone(state));}catch{throw Error('本机保存失败，请保持页面打开并检查浏览器存储设置');}}
+function notify(text){message.value=text;error.value='';}
+function run(fn){message.value='';error.value='';try{fn();persist();}catch(e){error.value=e.message;}}
+function go(to){page.value=to;message.value='';error.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
+function enterStudent(){go(student.value?'student-list':'student-register');}
+function enterParent(){demoParent.value=false;go(parentRequest.value?'parent-status':'parent-form');}
+function sendCode(){error.value='';if(!validEmail(studentForm.email)){error.value='邮箱后缀只支持 @m.fudan.edu.cn';return;}studentForm.verifiedEmail=normalizeEmail(studentForm.email);studentForm.demoCode='2026';notify('模拟验证码 2026 已填入，没有发送真实邮件。');}
+function verifyEmail(){error.value='';if(!validEmail(studentForm.email)||studentForm.demoCode!=='2026'||normalizeEmail(studentForm.email)!==studentForm.verifiedEmail){error.value='请先获取当前邮箱的模拟验证码';return;}registerStep.value=1;message.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
+function signup(){run(()=>{registerStudent(state,{...clone(studentForm),low:Math.round(Number(studentForm.low)*100),high:Math.round(Number(studentForm.high)*100)},now());go('student-list');notify('模拟注册完成。以下是与你的科目、时段和报价匹配的家长需求。');});}
+function registerAgain(){Object.assign(studentForm,{email:student.value?.email||'',demoCode:'',verifiedEmail:'',name:'',subjects:[],slots:[],low:230,high:270,gender:student.value?.gender||'女'});registerStep.value=0;go('student-register');}
+function publish(){run(()=>{publishRequest(state,{...clone(parentForm),low:Math.round(Number(parentForm.low)*100),high:Math.round(Number(parentForm.high)*100)},now());demoParent.value=false;go('parent-status');notify('需求已进入本机匹配池，等待合适的学生选择。');});}
+function editParent(){const r=parentRequest.value;if(!r||r.isDemo)return;Object.assign(parentForm,{...clone(r),low:r.low/100,high:r.high/100});go('parent-form');}
+function chooseParent(id){run(()=>{claimRequest(state,id,now());go('student-contact');notify('已为你保留这条需求 12 小时，请主动联系家长并由双方分别确认。');});}
+function respond(role,result){run(()=>{const claim=role==='student'?currentClaim.value:parentClaim.value;if(!claim)throw Error('没有待确认的联系');confirmContact(state,claim.id,role,result,now());go(role==='student'?'student-list':'parent-status');notify(claim.status==='success'?'双方已联系好。家长需求已移出匹配池，学生本次接单结束。':claim.status==='declined'?'已结束这次联系，家长需求已退回匹配池。':'已记录“联系好了”，仍需另一方在 12 小时内确认。');});}
+function showDemoParent(){state.demoParentRequestId=currentClaim.value?.requestId;demoParent.value=true;run(()=>go('parent-status'));}
+function remain(claim){const seconds=Math.max(0,Math.ceil((claim.deadline-now())/1000));return `${String(Math.floor(seconds/3600)).padStart(2,'0')}:${String(Math.floor(seconds%3600/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;}
+function refreshExpiry(){clock.value=Date.now();const before=state.claims.filter(c=>c.status==='active').length;expireClaims(state,now());if(before!==state.claims.filter(c=>c.status==='active').length){run(()=>{if(page.value==='student-contact')go('student-list');notify('12 小时内双方未同时确认，需求已退回匹配池。');});}}
+function advance(){state.offset+=13*HOUR;refreshExpiry();run(()=>notify('演示时钟已推进 13 小时；超时联系会退回匹配池。'));}
+function resetDemo(){uni.showModal({title:'重置本机体验',content:'清空此浏览器的新版本模拟注册、需求和联系记录？',confirmText:'重置',success:r=>{if(r.confirm){Object.assign(state,createPlatformState());demoParent.value=false;registerStep.value=0;Object.assign(studentForm,{email:'',demoCode:'',verifiedEmail:'',name:'',subjects:[],slots:[],low:230,high:270,gender:'女'});Object.assign(parentForm,{name:'',subjects:[],slots:[],low:230,high:270,gender:'无所谓',contactType:'微信',contact:'',note:''});run(()=>go('home'));}}});}
+refreshExpiry();const timer=setInterval(refreshExpiry,1000);onUnmounted(()=>clearInterval(timer));
 </script>
 
 <template>
- <view ref="appRoot" class="app">
-  <view class="demo-strip motion-strip"><text>DEMO / 体验版</text><text>人物、认证与付款均为模拟</text></view>
-  <view class="header">
-   <view class="brand motion-brand" @tap="go('request')"><view class="brand-seal">同</view><view><text class="brand-name">同窗</text><text class="brand-caption">TONGCHUANG · SHANGHAI</text></view></view>
-   <view class="desktop-nav"><button :class="{selected:page==='request'||page==='results'}" @tap="go('request')">找家教</button><button :class="{selected:page==='orders'}" @tap="go('orders')">我的试课<text v-if="state.orders.length" class="count">{{state.orders.length}}</text></button><button :class="{selected:page==='student'||page==='onboarding'}" @tap="go('student')">学生工作台</button></view>
-   <button class="explain motion-info" @tap="go('about')"><text>INFO</text><t-icon name="arrow-right-up" size="16" /></button>
-  </view>
-
-  <view class="main">
-   <view v-if="error" class="message error" role="alert"><t-icon name="error-circle" size="18" />{{error}}<button @tap="error=''">关闭</button></view>
-   <view v-if="notice" class="message" role="status"><t-icon name="check-circle" size="18" />{{notice}}<button @tap="notice=''">关闭</button></view>
-
-   <RequestForm v-if="page==='request'" class="motion-enter" :form="form" @submit="find" @about="go('about')" />
-
-   <view v-else-if="page==='results'" class="view-screen motion-enter">
-    <button class="back" @tap="go('request')">← 修改需求</button><view class="intro tight"><view><text class="eyebrow">推荐同学</text><text class="title">{{results.length?'认识几位合适的同学':'暂时没有完全合适的同学'}}</text><text class="subtitle">{{form.grade}} · {{subjectText(form)}} · 每周 {{form.sessions.length}} 次 · 预算 ¥{{money(form.budgetMin)}}–{{money(form.budgetMax)}} / 小时</text></view><t-tag theme="primary" variant="light">{{results.length}} 位可选</t-tag></view>
-    <view class="results-layout"><view class="result-list">
-     <view v-if="!results.length" class="panel empty"><t-icon name="search" size="48"/><text class="section-title">这次卡在了这里</text><view v-for="d in diagnostics" :key="d.code" class="diagnostic"><text class="diagnostic-title">{{d.title}}</text><text class="small">{{d.detail}}</text><button v-if="!['wait'].includes(d.action)" class="diagnostic-action" @tap="applySuggestion(d.action)">{{d.action==='try_online'?'同时看看线上':d.action==='relax_gender'?'取消性别偏好':'去调整需求'}}</button></view><t-button theme="primary" @click="go('request')">返回修改需求</t-button><text class="hint">系统不会降低认证、科目、时间或预算条件来凑人数。两人拆单仍在后续开发范围。</text></view>
-     <view v-for="(c,ci) in results" :key="c.tutor.id" class="tutor-card panel"><view class="card-top"><view class="avatar" :class="c.tutor.color">{{c.tutor.letter}}</view><view class="person"><view class="name-row"><text class="person-name">{{c.tutor.name}}</text><t-tag v-if="ci===0" size="small" theme="primary" variant="light">优先推荐</t-tag></view><text class="small">复旦大学 · {{c.tutor.major}} · {{c.tutor.year}}</text></view><text class="mock-label">模拟人物</text></view><text class="bio">{{c.tutor.style}}</text><view class="reason"><t-icon name="check-circle" size="17"/><text>覆盖 {{form.subjects.length}} 门科目与每周全部 {{c.slots.length}} 次课 · {{c.mode}}</text></view><view class="tags"><text v-for="s in c.slots" :key="s.day+'-'+s.start" class="time-chip">{{slotText(s)}}</text></view><view class="price-row"><view><text class="price">¥{{money(c.rate)}}<text class="price-unit"> / 小时</text></text><text class="small">基础时薪 · 通勤 {{c.commute?'¥'+money(c.commute)+' / 次':'无需补贴'}}</text></view><view class="card-actions"><t-button variant="text" theme="primary" @click="detail=c">了解同学</t-button><t-button theme="primary" @click="select(c)">邀请试课</t-button></view></view></view>
-    </view><view class="aside"><view class="panel summary"><text class="section-title">这次匹配的依据</text><view class="summary-row"><text>教学条件</text><text>{{form.grade}} · {{subjectText(form)}}</text></view><view class="summary-row"><text>费用范围</text><text>每节含通勤均在预算内</text></view><view class="summary-row"><text>时间安排</text><text>同一同学覆盖全部科目与课次</text></view><text class="hint">价格为共同可成交范围内的建议值。体验版邀请时按该值锁定，实际版本需双方确认。</text><view class="line"/><text class="small">校园邮箱验证不能单独证明仍在校。真实版本需要补充在校核验；此处认证与经历均为模拟。</text></view></view></view>
-   </view>
-
-   <view v-else-if="page==='orders'" class="view-screen motion-enter">
-    <view class="intro tight"><view><text class="eyebrow">试课记录</text><text class="title">我的试课</text><text class="subtitle">从发出邀请，到一起确认下一步。</text></view><view class="role-switch"><button :class="{active:role==='parent'}" @tap="switchRole('parent')">家长视角</button><button :class="{active:role==='tutor'}" @tap="switchRole('tutor')">学生视角</button></view></view>
-    <view v-if="!orders.length" class="panel empty"><t-icon name="calendar" size="48"/><text class="section-title">还没有安排试课</text><text class="small">你还没有发出邀请，先找到时间合适的同学吧。</text><t-button theme="primary" @click="go('request')">去找家教</t-button></view>
-    <view v-for="o in orders" :key="o.id" class="panel order-card"><view class="section-heading"><view><text class="section-title">{{o.quote.tutor.name}} · {{o.request.grade}}{{subjectText(o.request)}}</text><text class="small">{{o.id}} · {{o.quote.mode}} · 每周 {{o.quote.slots.length}} 次</text></view><t-tag :theme="o.status==='success'?'success':'primary'" variant="light">{{statusText[o.status]}}</t-tag></view>
-     <view class="progress"><view v-for="(label,i) in ['邀请','付款','试课','双向确认','完成']" :key="label" :class="['progress-item',{done:i<=step(o)}]"><view class="progress-dot">{{i<step(o)?'✓':i+1}}</view><text>{{label}}</text></view></view>
-     <view class="order-body"><view class="order-main">
-      <template v-if="o.status==='invited'"><text class="order-title">邀请已发出，等待同学回应</text><text class="subtitle">学生剩余 {{left(o.inviteDeadline)}} 可接受。这段时间里，该同学不会被其他家长选中。</text><text class="contact locked"><t-icon name="lock-on" size="17"/> 接受邀请后解锁联系方式</text></template>
-      <template v-else-if="o.status==='arranging'"><text class="order-title">先把试课安排确认清楚</text><text class="subtitle">学生已接受邀请。真实版本由双方在微信沟通，回到小程序核对试课方式、时间和费用后再付款。</text><text class="contact"><t-icon name="chat" size="17"/> 联系方式已模拟解锁 · 无真实微信号</text><view class="trial-snapshot"><view class="summary-row"><text>建议试课时间</text><text>{{slotText(o.quote.slots[0])}} · 1 小时</text></view><view class="summary-row"><text>方式与地点</text><text>{{o.quote.mode}} · {{o.quote.mode==='线上'?'视频平台双方商定':o.request.location}}</text></view><view class="summary-row"><text>付款前确认</text><text>课时 ¥{{money(o.quote.rate)}} ＋ 通勤 ¥{{money(o.quote.commute)}}</text></view></view></template>
-      <template v-else-if="['accepted','paid','scheduled'].includes(o.status)"><text class="order-title">{{o.status==='accepted'?'试课安排已确认，等待付款':o.status==='paid'?'等待学生确认收到试课费':'待完成一小时试课'}}</text><text class="subtitle">试课时长 1 小时。课时费 ¥{{money(o.quote.rate)}}，通勤补贴 ¥{{money(o.quote.commute)}}，全部归学生。</text><text class="contact"><t-icon name="chat" size="17"/> 联系方式已模拟解锁 · 无真实微信号</text><text v-if="o.trial" class="hint">{{slotText(o.trial.slot)}} · {{o.trial.place}}。费用和地点已保存为本次试课快照。</text><text v-else class="hint">这条旧演示订单尚无试课安排快照，可继续按原流程体验。</text></template>
-      <template v-else-if="o.status==='review'"><text class="order-title">愿意继续这段合作吗？</text><text class="subtitle">还有 {{left(o.confirmDeadline)}} 确认。任一方不合适或超时未确认，平台均不收费。</text><view class="confirmations"><text>家长：{{resultText(o.parentResult)}}</text><text>学生：{{resultText(o.tutorResult)}}</text></view></template>
-      <template v-else-if="o.status==='success'"><text class="order-title">双方已确认，合作开始</text><text class="subtitle">固定上课时间已占用，学生默认暂停接单。后续约课和付款由双方自行沟通。</text><view class="confirmations"><text>家长服务费：¥{{money(o.parentFee)}} · {{o.parentPaid?'已模拟支付':'待结算'}}</text><text>学生服务费：¥{{money(o.tutorFee)}} · {{o.tutorPaid?'已模拟支付':'待结算'}}</text></view></template>
-      <template v-else><text class="order-title">本次试课已结束</text><text class="subtitle">没有产生平台服务费。已完成的付费试课不会因匹配失败而自动退款。</text></template>
-     </view><view class="order-price"><text class="small">1 小时试课合计</text><text class="large-price">¥{{money(o.quote.rate+o.quote.commute)}}</text><text class="small">含通勤 ¥{{money(o.quote.commute)}}</text><view class="line"/><text class="small">成功后平台服务费</text><text>家长 ¥{{money(o.quote.rate/2)}} · 学生 ¥{{money(o.quote.rate)}}</text></view></view>
-     <view class="order-actions"><template v-if="role==='tutor'&&o.status==='invited'"><t-button variant="outline" @click="action(o,'reject')">暂不合适</t-button><t-button theme="primary" @click="action(o,'accept')">接受试课邀请</t-button></template><t-button v-else-if="role==='parent'&&o.status==='arranging'" theme="primary" @click="action(o,'confirmTrial')">确认以上试课安排</t-button><template v-else-if="role==='parent'&&o.status==='accepted'"><t-button theme="primary" @click="action(o,'payTrial')">模拟支付试课费 ¥{{money(o.quote.rate+o.quote.commute)}}</t-button></template><t-button v-else-if="role==='tutor'&&o.status==='paid'" theme="primary" @click="action(o,'receive')">模拟确认已收到试课费</t-button><t-button v-else-if="role==='tutor'&&o.status==='scheduled'" theme="primary" @click="action(o,'finish')">模拟完成 1 小时试课</t-button><template v-else-if="o.status==='review'&&!(role==='parent'?o.parentResult:o.tutorResult)"><t-button variant="outline" @click="action(o,'fail')">不合适，继续寻找</t-button><t-button theme="primary" @click="action(o,'success')">确认合适，继续合作</t-button></template><t-button v-else-if="o.status==='success'&&!(role==='parent'?o.parentPaid:o.tutorPaid)" theme="primary" @click="action(o,'payService')">模拟支付{{role==='parent'?'家长':'学生'}}服务费</t-button><text v-else-if="activeOrder(o)" class="small">等待{{role==='parent'?'学生':'家长'}}操作，可切换上方体验视角。</text><t-button v-if="!activeOrder(o)" variant="text" theme="primary" @click="go('request')">继续找家教</t-button><t-button v-if="role==='parent'&&['invited','arranging','accepted'].includes(o.status)" variant="text" @click="action(o,'cancel')">取消邀请</t-button></view>
+ <view class="platform-app">
+  <view class="p-demo">流程初版 · 本机模拟 <text>邮箱与联系方式均为演示</text></view>
+  <view class="p-header"><button class="p-brand" @tap="go('home')">同窗</button><button v-if="page!=='home'" class="p-link" @tap="go('home')">切换身份 ↗</button><text v-else class="p-caption">复旦学生 · 家长需求平台</text></view>
+  <view class="p-main">
+   <view v-if="error" class="p-alert p-alert-error" role="alert">{{error}}<button class="p-link" @tap="error=''">关闭</button></view>
+   <view v-if="message" class="p-alert" role="status">{{message}}<button class="p-link" @tap="message=''">关闭</button></view>
+   <template v-if="page==='home'">
+    <view class="p-intro"><text class="p-eyebrow">从你的身份开始</text><text class="p-title">同窗，连接所需。</text><text class="p-copy">家长发布需求，复旦学生主动联系。具体上课时间和合作细节，由你们一起商量。</text></view>
+    <button class="role-entry role-student" @tap="enterStudent"><view><text class="role-title">我是学生</text><text class="role-copy">校园邮箱注册 · 查看匹配的家长需求</text></view><text class="role-arrow">↗</text></button>
+    <button class="role-entry" @tap="enterParent"><view><text class="role-title">我是家长</text><text class="role-copy">直接填写要求 · 留下联系方式</text></view><text class="role-arrow">↗</text></button>
+    <view class="p-panel p-muted-panel"><text class="p-section-title">先连接，再共同决定</text><text class="p-copy">学生选中需求后保留 12 小时。只有双方都点“联系好了”，才会结束本次匹配；任一方未联系好或超时，需求重新开放。</text></view>
+    <text class="p-hint">当前仅本机保存，其他手机不会同步。请使用虚构资料；本版没有真实邮件、付款或在线交易。</text>
+   </template>
+   <template v-else-if="page==='student-register'">
+    <button class="p-link p-back" @tap="registerStep?registerStep=0:go('home')">← {{registerStep?'返回邮箱验证':'返回身份选择'}}</button>
+    <view class="p-intro"><text class="p-eyebrow">学生端 · {{registerStep?'02 授课资料':'01 校园邮箱'}}</text><text class="p-title">{{registerStep?'告诉我们你的擅长':'用复旦学生邮箱开始'}}</text><text class="p-copy">{{registerStep?'完成后就可以查看匹配的家长需求。':'邮箱后缀限定为 @m.fudan.edu.cn。本版仅模拟验证。'}}</text></view>
+    <view v-if="!registerStep" class="p-panel">
+     <label class="p-label">复旦学生邮箱</label><input v-model="studentForm.email" class="p-input" placeholder="name@m.fudan.edu.cn" maxlength="100"/>
+     <view class="p-code-row"><input v-model="studentForm.demoCode" class="p-input" placeholder="演示验证码" maxlength="4"/><button class="p-secondary" @tap="sendCode">获取模拟验证码</button></view>
+     <text class="p-hint">仅演示校园邮箱流程；未连接邮件服务，也不代表真实在校认证。</text><button class="p-primary" @tap="verifyEmail">下一步，填写授课信息</button>
     </view>
-    <view class="demo-tools"><button class="text-button" @tap="showTools=!showTools">{{showTools?'收起':'打开'}}超时演示工具</button><view v-if="showTools" class="tools-row"><t-button size="small" variant="outline" @click="demoAdvance(25)">推进 25 小时</t-button><t-button size="small" variant="outline" @click="demoAdvance(73)">推进 73 小时</t-button><text class="hint">只改变本机演示时钟，用于验证超时释放。</text></view></view>
-   </view>
-
-   <TutorOnboarding v-else-if="page==='onboarding'" class="motion-enter" @complete="completeOnboarding" @cancel="go('student')"/>
-
-   <view v-else-if="page==='student'" class="view-screen motion-enter">
-    <view class="intro tight"><view><text class="eyebrow">我的授课</text><text class="title">学生工作台</text><text class="subtitle">查看邀请、预计周收入与已经占用的固定时间。</text></view><view class="student-entry"><picker :range="state.tutors.map(t=>t.name)" @change="currentTutorId=state.tutors[Number($event.detail.value)].id"><view class="select">体验角色：{{currentTutor.name}}<t-icon name="chevron-down" size="16"/></view></picker><button class="student-onboard-action" @tap="go('onboarding')">体验新学生入驻</button></view></view>
-    <view class="student-layout"><view class="panel profile"><view class="card-top"><view class="avatar" :class="currentTutor.color">{{currentTutor.letter}}</view><view><text class="person-name">{{currentTutor.name}}</text><text class="small">{{currentTutor.major}} · {{currentTutor.year}}</text></view></view><text class="bio">{{currentTutor.style}}</text><view class="summary-row"><text>身份认证</text><text>模拟邮箱与在校核验</text></view><view class="summary-row"><text>接单状态</text><text>{{state.orders.some(o=>o.tutorId===currentTutor.id&&activeOrder(o))?'当前试课占用':currentTutor.active?'可接单':'暂停接单'}}</text></view><view class="summary-row"><text>每年复验</text><text>9 月 · {{currentTutor.verifiedUntil>now()?'模拟有效':'已过期'}}</text></view><view class="profile-actions"><t-button theme="primary" block @click="resume">{{currentTutor.active?'暂停接单':'重新接单'}}</t-button><button class="profile-secondary" @tap="renew">模拟完成年度复验</button></view><text class="hint">不接收真实邮箱或密码。资料编辑和真实邮件验证在后续版本接入。</text></view>
-     <view><view class="panel"><view class="section-heading"><text class="section-title">收到的邀请</text><t-button variant="text" theme="primary" @click="page='orders';role='tutor'">查看并处理 →</t-button></view><text v-if="!orders.length" class="small">暂无邀请。先在家长端选择这位同学，即可在这里体验回应。</text><view v-for="o in orders" :key="o.id" class="income-row"><view><text class="label">{{o.request.grade}}{{subjectText(o.request)}} · {{statusText[o.status]}}</text><text class="small">{{o.quote.slots.map(slotText).join(' / ')}}</text></view><view class="income"><text class="price">¥{{money(o.quote.weeklyBase+o.quote.weeklyCommute)}}<text class="price-unit"> / 周</text></text><text class="small">课时 ¥{{money(o.quote.weeklyBase)}} ＋ 通勤 ¥{{money(o.quote.weeklyCommute)}}</text></view></view></view>
-      <view class="panel occupied"><text class="section-title">固定时间占用</text><text class="small">匹配成功后自动扣除。重新接单仍会避开这些时段。</text><view v-if="!currentTutor.blocks.length" class="empty-small">还没有占用的课次</view><view v-for="(b,bi) in currentTutor.blocks" :key="bi" class="summary-row"><text>{{slotText(b)}}</text><button class="text-button" @tap="releaseBlock(b.orderId)">合作已结束，释放</button></view></view>
-     </view></view>
-   </view>
-
-   <view v-else class="view-screen motion-enter">
-    <view class="intro tight"><view><text class="eyebrow">使用说明</text><text class="title">关于同窗体验版</text><text class="subtitle">同窗是临时产品名，与复旦大学无官方隶属或背书关系。</text></view></view>
-    <view class="panel about"><text class="section-title">完整走一遍</text><view v-for="(s,i) in ['填写需求并查看推荐，选择一位学生。','在「我的试课」切换学生视角，接受邀请。','家长确认试课时间、方式与费用，再模拟付款。','学生确认收款并完成试课，双方分别确认结果。','分别模拟支付服务费，在工作台查看时间占用。']" :key="s" class="about-step"><text class="step-circle">{{i+1}}</text><text>{{s}}</text></view><view class="line"/><text class="section-title">这轮已经可体验</text><text class="body-copy">多科目、预算、多个课次和备选时间匹配；无匹配原因诊断；学生分步入驻和校园邮箱演示；5 公里通勤规则；24 小时邀请占用；试课安排快照；72 小时双向确认；成功后一次性收费与固定时间占用。</text><text class="section-title">下一轮接入</text><text class="body-copy">两人拆单、分学段报价、真实微信登录和邮箱核验、地图距离、服务端并发控制、正式支付及运营后台。当前仅本机存储，不支持多人联机；正式运营另需完成业务合规和平台准入核实。</text><text class="section-title">复用来源</text><text class="body-copy">基于 TDesign 团队的 Uniapp 通用模板与 TDesign 组件库（MIT）。同一份页面可构建为 H5 和微信小程序。来源版本与改动已记录在项目说明。</text><t-button theme="primary" @click="go('request')">开始体验</t-button><t-button variant="text" @click="reset">重置本机演示数据</t-button></view>
-   </view>
-   <view class="footer"><text>同窗 TONGCHUANG</text><text>本地体验 · 无真实收费</text></view>
+    <view v-else class="p-panel">
+     <text class="p-hint">注册邮箱：{{studentForm.email}}</text>
+     <label class="p-label">称呼（选填）</label><input v-model="studentForm.name" class="p-input" placeholder="例如：陈同学" maxlength="12"/>
+     <label class="p-label">可授课科目 · 多选</label><ChoiceGroup v-model="studentForm.subjects" :options="SUBJECTS" multiple :columns="3"/>
+     <label class="p-label">可授课时段 · 多选</label><WeeklyPeriods v-model="studentForm.slots"/><text class="p-hint">上午、中午、下午、晚上为粗时段，具体几点由双方联系后商定。</text>
+     <label class="p-label">每小时课时费范围（元）</label><view class="p-prices"><input v-model="studentForm.low" class="p-input" type="digit" aria-label="学生最低课时费"/><text>至</text><input v-model="studentForm.high" class="p-input" type="digit" aria-label="学生最高课时费"/></view><text class="p-hint">最低 160 元，区间跨度不超过 50 元；也可以填写相同金额。</text>
+     <label class="p-label">你的性别</label><ChoiceGroup v-model="studentForm.gender" :options="['女','男']" :columns="2"/>
+     <button class="p-primary" @tap="signup">完成模拟注册，查看家长需求</button>
+    </view>
+   </template>
+   <template v-else-if="page==='student-list'">
+    <view class="p-intro"><text class="p-eyebrow">学生端 · {{student?.name||'复旦同学'}}</text><text class="p-title">{{student?.active?'合适的家长需求':'本次接单已完成'}}</text><text class="p-copy">{{student?.active?'先看科目、报价和时段。选择后进入家长详情，查看联系方式和留言。':'双方已确认联系好。家长信息已移出匹配池；下次接单需要重新注册并重新选择授课时段。'}}</text></view>
+    <view v-if="!student?.active" class="p-panel"><text class="p-section-title">下次接单，重新填写可授课时间</text><text class="p-copy">沿用邮箱也需要重新完成模拟注册，本次资料不会自动用于下一单。</text><button class="p-primary" @tap="registerAgain">重新注册接单</button></view>
+    <template v-else>
+     <view class="p-profile-summary"><text>{{student.subjects.join('、')}} · {{student.gender}} · ¥{{money(student.low)}}–{{money(student.high)}} / 小时</text><text>{{student.slots.map(slotLabel).join('、')}}</text></view>
+     <view v-if="currentClaim" class="p-panel"><text class="p-status">联系中 · 还剩 {{remain(currentClaim)}}</text><text class="p-section-title">有一位家长正在等待联系结果</text><text class="p-copy">你：{{currentClaim.studentResult==='yes'?'已点联系好了':'尚未确认'}} · 家长：{{currentClaim.parentResult==='yes'?'已点联系好了':'尚未确认'}}</text><button class="p-primary" @tap="go('student-contact')">继续查看家长详情</button></view>
+     <template v-else>
+      <text v-if="lastClaim?.status==='expired'||lastClaim?.status==='declined'" class="p-hint">上次联系{{lastClaim.status==='expired'?'已超时':'未达成一致'}}，家长需求已退回匹配池。</text>
+      <view v-for="p in parents" :key="p.id" class="p-panel parent-card">
+       <view class="p-card-head"><text class="p-section-title">{{p.name}}</text><text class="p-badge">{{p.isDemo?'模拟需求':'待联系'}}</text></view>
+       <text class="p-card-subjects">{{p.subjects.join('、')}}</text><text class="p-copy">预算 ¥{{money(p.low)}}–{{money(p.high)}} / 小时 · 性别要求：{{p.gender}}</text>
+       <view class="p-tags"><text v-for="slot in p.slots" :key="slot" :class="['p-tag',{'p-tag-match':p.quote.commonSlots.includes(slot)}]">{{slotLabel(slot)}}</text></view>
+       <text class="p-hint">共同报价 ¥{{money(p.quote.low)}}–{{money(p.quote.high)}} / 小时 · {{p.quote.commonSlots.map(slotLabel).join('、')}}</text>
+       <button class="p-primary" @tap="chooseParent(p.id)">选择并查看家长详情</button><text class="p-hint">点击后保留 12 小时；联系方式与留言仅在详情显示。</text>
+      </view>
+      <view v-if="!parents.length" class="p-panel p-empty"><text class="p-section-title">暂时没有合适的需求</text><text class="p-copy">需要同时满足科目覆盖、性别要求、共同粗时段和课时费交集。可以先让家长发布一条符合条件的模拟需求。</text><button class="p-secondary" @tap="enterParent">切换到家长端</button></view>
+     </template>
+    </template>
+   </template>
+   <template v-else-if="page==='student-contact'">
+    <button class="p-link p-back" @tap="go('student-list')">← 返回学生端</button>
+    <template v-if="currentClaim&&activeDetail">
+     <view class="p-intro"><text class="p-eyebrow">家长详情 · 主动联系</text><text class="p-title">{{activeDetail.name}}</text><text class="p-status">联系保留中 · 还剩 {{remain(currentClaim)}}</text></view>
+     <view class="p-panel"><text class="p-section-title">{{activeDetail.subjects.join('、')}}</text><text class="p-copy">性别要求：{{activeDetail.gender}} · 预算 ¥{{money(activeDetail.low)}}–{{money(activeDetail.high)}} / 小时</text><text class="p-copy">共同可上课时段：{{currentClaim.quote.commonSlots.map(slotLabel).join('、')}}</text><text class="p-copy">共同报价 ¥{{money(currentClaim.quote.low)}}–{{money(currentClaim.quote.high)}} / 小时，具体钟点和最终价格请双方协商。</text></view>
+     <view class="p-panel contact-card"><text class="p-label">{{activeDetail.contactType}}联系方式</text><text class="contact-value" selectable>{{activeDetail.contact}}</text><text v-if="activeDetail.isDemo" class="p-hint">此为模拟信息，没有真实家长可以联系。</text><text class="p-label">家长想说的话</text><text class="p-note" selectable>{{activeDetail.note||'家长暂未留言。'}}</text></view>
+     <view class="fee-placeholder"><text class="p-section-title">收费提示（预留）</text><text class="p-copy">这里等待你提供正式提示内容。当前未设置收费金额，也不会发起付款。</text></view>
+     <view class="p-panel"><text class="p-section-title">联系结果</text><text class="p-copy">你：{{currentClaim.studentResult==='yes'?'已点联系好了':'尚未确认'}} · 家长：{{currentClaim.parentResult==='yes'?'已点联系好了':'尚未确认'}}</text><text class="p-hint">双方都需在期限内点击联系好了；任一方没联系好或超时，需求退回。</text><view class="p-confirm"><button class="p-secondary" @tap="respond('student','no')">没联系好</button><button class="p-primary" @tap="respond('student','yes')">联系好了</button></view></view>
+     <button v-if="activeDetail.isDemo" class="p-link p-demo-switch" @tap="showDemoParent">体验这位家长的确认视角 →</button>
+    </template>
+    <view v-else class="p-panel"><text class="p-copy">这次联系已结束，请返回学生端查看最新状态。</text><button class="p-primary" @tap="go('student-list')">返回学生端</button></view>
+   </template>
+   <template v-else-if="page==='parent-form'">
+    <button class="p-link p-back" @tap="parentRequest?enterParent():go('home')">← {{parentRequest?'返回家长端':'返回身份选择'}}</button>
+    <view class="p-intro"><text class="p-eyebrow">家长端 · 直接发布需求</text><text class="p-title">把你的要求留下来</text><text class="p-copy">无需校园邮箱注册。学生先看到粗要求，选择后进入详情查看联系方式与留言。</text></view>
+    <view class="p-panel">
+     <label class="p-label">称呼（选填）</label><input v-model="parentForm.name" class="p-input" placeholder="例如：王家长" maxlength="12"/>
+     <label class="p-label">需要辅导的科目 · 多选</label><ChoiceGroup v-model="parentForm.subjects" :options="SUBJECTS" multiple :columns="3"/>
+     <label class="p-label">可以上课的时段 · 多选</label><WeeklyPeriods v-model="parentForm.slots"/><text class="p-hint">有任一共同粗时段即可匹配，具体几点请与学生商量。</text>
+     <label class="p-label">每小时课时费预算（元）</label><view class="p-prices"><input v-model="parentForm.low" class="p-input" type="digit" aria-label="家长最低课时费"/><text>至</text><input v-model="parentForm.high" class="p-input" type="digit" aria-label="家长最高课时费"/></view><text class="p-hint">最低 160 元，区间跨度不超过 50 元；实际报价须处于双方交集。</text>
+     <label class="p-label">对学生的性别要求</label><ChoiceGroup v-model="parentForm.gender" :options="['无所谓','女','男']" :columns="3"/>
+     <label class="p-label">联系方式类型</label><ChoiceGroup v-model="parentForm.contactType" :options="['微信','QQ','电话']" :columns="3"/>
+     <label class="p-label">{{parentForm.contactType}}联系方式</label><input v-model="parentForm.contact" class="p-input" placeholder="演示版请填写虚构联系方式" maxlength="80"/>
+     <label class="p-label">想说的话（选填）</label><textarea v-model="parentForm.note" class="p-textarea" placeholder="孩子的基础、辅导重点，或你想提前沟通的事情" maxlength="500"/><text class="p-hint">{{parentForm.note.length}} / 500 · 留言不会出现在粗要求列表中。</text>
+     <button class="p-primary" @tap="publish">发布模拟需求</button>
+    </view>
+   </template>
+   <template v-else-if="page==='parent-status'">
+    <view class="p-intro"><text class="p-eyebrow">家长端{{demoParent?' · 演示确认视角':''}}</text><text class="p-title">{{parentRequest?.status==='matched'?'已经联系好了':parentRequest?.status==='claimed'?'有学生选择了你的需求':'你的需求已发布'}}</text></view>
+    <view v-if="parentRequest?.status==='matched'" class="p-panel"><text class="p-section-title">双方确认，本次匹配结束</text><text class="p-copy">你的需求已从匹配池移除。学生下次接单需要重新注册并选择时间。</text><button class="p-secondary" @tap="enterStudent">查看学生端提示</button></view>
+    <view v-else-if="parentRequest" class="p-panel">
+     <text class="p-section-title">{{parentRequest.name}} · {{parentRequest.subjects.join('、')}}</text><text class="p-copy">预算 ¥{{money(parentRequest.low)}}–{{money(parentRequest.high)}} / 小时 · 性别要求：{{parentRequest.gender}}</text><view class="p-tags"><text v-for="slot in parentRequest.slots" :key="slot" class="p-tag">{{slotLabel(slot)}}</text></view>
+     <template v-if="parentClaim?.status==='active'"><text class="p-status">等待双方确认 · 还剩 {{remain(parentClaim)}}</text><text class="p-copy">{{state.students.find(s=>s.id===parentClaim.studentId)?.name}}正在联系你。</text><text class="p-copy">你：{{parentClaim.parentResult==='yes'?'已点联系好了':'尚未确认'}} · 学生：{{parentClaim.studentResult==='yes'?'已点联系好了':'尚未确认'}}</text><text class="p-hint">双方在 12 小时内都点联系好了才结束；只要一方点没联系好，或到期未同时确认，就退回匹配池。</text><view class="p-confirm"><button class="p-secondary" @tap="respond('parent','no')">没联系好</button><button class="p-primary" @tap="respond('parent','yes')">联系好了</button></view></template>
+     <template v-else><text class="p-status">{{parentRequest.lastResult?'上次联系未完成，已重新开放':'匹配池中 · 等待学生主动联系'}}</text><text class="p-copy">联系方式和留言仅在学生选择后的家长详情页展示。</text><button v-if="!parentRequest.isDemo" class="p-secondary" @tap="editParent">修改需求</button></template>
+    </view>
+    <view v-else class="p-panel"><text class="p-copy">还没有发布需求。</text><button class="p-primary" @tap="go('parent-form')">填写家长需求</button></view>
+    <button v-if="demoParent" class="p-link p-demo-switch" @tap="enterStudent">返回学生视角 →</button>
+   </template>
+   <view class="p-tools"><text class="p-hint">同窗流程初版 · 本机体验，非真实交易</text><view><button v-if="state.claims.some(c=>c.status==='active')" class="p-link" @tap="advance">演示：推进 13 小时</button><button class="p-link" @tap="resetDemo">重置本机体验</button></view></view>
   </view>
-  <AppTabs :value="page==='results'?'request':page==='onboarding'?'student':page" @change="go" />
-  <view class="profile-popup"><t-popup :visible="!!detail" placement="bottom" @visible-change="!$event.visible && (detail=null)">
-   <view v-if="detail" class="profile-sheet">
-    <view class="sheet-handle" />
-    <view class="sheet-header"><text class="section-title">认识这位同学</text><button class="sheet-close" aria-label="关闭同学资料" @tap="detail=null"><t-icon name="close" size="21" /></button></view>
-    <scroll-view scroll-y class="sheet-scroll">
-     <view class="card-top"><view class="avatar" :class="detail.tutor.color">{{detail.tutor.letter}}</view><view><text class="person-name">{{detail.tutor.name}}</text><text class="small">复旦大学 · {{detail.tutor.major}} · {{detail.tutor.year}}</text><text class="small">模拟人物 · 认证与经历仅作演示</text></view></view>
-     <text class="body-copy">{{detail.tutor.intro}}</text>
-     <text class="label">经历与教学风格</text><text class="small">{{detail.tutor.experience}} · {{detail.tutor.styles.join(' / ')}}</text>
-     <view class="tags"><text v-for="subject in form.subjects" :key="subject" class="time-chip">{{subject}}</text><text v-for="s in detail.slots" :key="s.day+'-'+s.start" class="time-chip">{{slotText(s)}}</text></view>
-     <view class="line"/><view class="summary-row"><text>可成交基础时薪</text><text>¥{{money(detail.low)}}–{{money(detail.high)}}</text></view><view class="summary-row"><text>本次建议基础时薪</text><text>¥{{money(detail.rate)}}</text></view><view class="summary-row"><text>通勤补贴 / 次</text><text>¥{{money(detail.commute)}}</text></view><view class="summary-row"><text>一小时试课合计</text><text>¥{{money(detail.rate+detail.commute)}}</text></view><text class="hint">试课费用直接付给同学。只有双方确认继续合作，才收一次性平台服务费。</text>
-    </scroll-view>
-    <view class="sheet-action"><t-button theme="primary" block @click="select(detail)">邀请试课 · ¥{{money(detail.rate+detail.commute)}}</t-button></view>
-   </view>
-  </t-popup></view>
  </view>
 </template>
