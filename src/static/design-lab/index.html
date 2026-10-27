@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <title>同窗 · 三个手机 UI 方向</title>
+ <style>
+  :root{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;color:#252934;background:#eeeff2;font-synthesis:none}*{box-sizing:border-box}body{margin:0}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer}a{color:inherit;text-decoration:none}button:focus-visible,a:focus-visible{outline:2px solid #354ec6;outline-offset:3px}.lab-header{max-width:1310px;margin:auto;padding:31px 24px 20px}.lab-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}.lab-heading h1{font-size:27px;letter-spacing:-.7px;margin:0}.lab-heading a{font-size:13px;color:#5c6473;min-height:44px;display:flex;align-items:center}.lab-header p{font-size:14px;line-height:1.8;margin:12px 0 0;color:#5b6372;max-width:720px}.lab-controls{position:sticky;top:0;background:rgba(238,239,242,.97);z-index:2;border-bottom:1px solid #d4d8df}.controls-inner{max-width:1310px;margin:auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.page-tabs,.theme-tabs{display:flex;gap:6px;flex-wrap:wrap}.page-tabs button,.theme-tabs button{min-height:42px;padding:10px 14px;font-size:13px;border:1px solid transparent;border-radius:7px;background:transparent;color:#5a6170;white-space:nowrap}.page-tabs button[aria-selected=true]{background:#252934;color:white}.theme-tabs button[aria-selected=true]{background:#fff;color:#252934;border-color:#d4d8df}.directions{max-width:1310px;margin:0 auto;padding:23px 24px 40px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}.direction{min-width:0}.direction-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.direction h2{font-size:19px;line-height:1.5;margin:0}.direction p{color:#626a79;font-size:12px;line-height:1.7;margin:5px 0 0}.letter{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-right:5px;font-size:12px;border:1px solid #bcc3cd;border-radius:5px;vertical-align:2px}.recommend{display:inline-block;background:#f6e9df;color:#9d3c24;border-radius:4px;padding:2px 5px;font-size:10px;vertical-align:3px;margin-left:4px}.open-link{font-size:12px;min-height:44px;flex-shrink:0;display:flex;align-items:center;color:#4e596c}.frame{background:#fff;border:1px solid #cbd0d9;border-radius:19px;padding:6px;box-shadow:0 12px 45px rgba(45,53,77,.06);overflow:hidden}.frame iframe{display:block;width:100%;height:844px;background:#fff;border:0;border-radius:13px}.direction[data-theme=b] .frame{background:#14191d;border-color:#303c44}.direction[data-theme=c] .frame{background:#f5f4ef}.lab-footer{max-width:1310px;margin:0 auto;padding:0 24px 32px;color:#626a79;font-size:12px;line-height:1.9}.lab-footer strong{color:#343b48}.theme-tabs{display:none}
+  @media(max-width:850px){.lab-header{padding:22px 16px 15px}.lab-heading h1{font-size:23px}.lab-heading a{font-size:11px}.lab-header p{font-size:12px;line-height:1.8}.controls-inner{padding:10px 16px;gap:7px}.theme-tabs{display:flex;width:100%}.theme-tabs button{flex:1;padding:10px 9px;min-height:44px}.page-tabs{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.page-tabs button{padding:10px 3px;font-size:12px;min-height:44px}.directions{display:block;padding:17px 12px 28px}.direction:not(.selected){display:none}.direction-head{padding:0 4px}.frame{padding:0;border-radius:12px}.frame iframe{height:calc(100dvh - 190px);min-height:620px;border-radius:11px}.lab-footer{padding:0 16px 28px}.lab-controls{backdrop-filter:none}.lab-heading{gap:8px}}
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+ </style>
+</head>
+<body>
+ <header class="lab-header">
+  <div class="lab-heading"><h1>同窗，三种打开方式。</h1><a href="../../">返回当前体验版 ↗</a></div>
+  <p>同样的需求，同样的操作，三套视觉语言。先选页面，再比较方向；点击「全屏体验」可以直接在手机上操作。</p>
+ </header>
+ <nav class="lab-controls" aria-label="预览控制">
+  <div class="controls-inner">
+   <div class="theme-tabs" aria-label="视觉方向">
+    <button data-theme="a" aria-selected="true">A 校园光感</button><button data-theme="b" aria-selected="false">B 轻未来</button><button data-theme="c" aria-selected="false">C 新中式书刊</button>
+   </div>
+   <div class="page-tabs" aria-label="预览页面">
+    <button data-screen="home" aria-selected="true">身份入口</button><button data-screen="student-list" aria-selected="false">家长需求</button><button data-screen="student-contact" aria-selected="false">联系详情</button><button data-screen="parent-form" aria-selected="false">发布表单</button>
+   </div>
+   <span style="font-size:12px;color:#626a79">真实页面预览，资料为独立模拟数据</span>
+  </div>
+ </nav>
+ <main class="directions">
+  <section class="direction selected" data-theme="a">
+   <div class="direction-head"><div><h2><span class="letter">A</span>晴窗<span class="recommend">推荐</span></h2><p>校园光感 / 自然、亲近、清晰</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=a">全屏体验 ↗</a></div>
+   <div class="frame"><iframe title="A 晴窗校园光感预览" data-theme="a" src="../../?design=a&screen=home"></iframe></div>
+  </section>
+  <section class="direction" data-theme="b">
+   <div class="direction-head"><div><h2><span class="letter">B</span>Signal</h2><p>轻未来 / 锐利、有序、轻盈</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=b">全屏体验 ↗</a></div>
+   <div class="frame"><iframe title="B Signal轻未来预览" data-theme="b" src="../../?design=b&screen=home"></iframe></div>
+  </section>
+  <section class="direction" data-theme="c">
+   <div class="direction-head"><div><h2><span class="letter">C</span>同窗来信</h2><p>新中式书刊 / 克制、有文化感</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=c">全屏体验 ↗</a></div>
+   <div class="frame"><iframe title="C 同窗来信新中式书刊预览" data-theme="c" src="../../?design=c&screen=home"></iframe></div>
+  </section>
+ </main>
+ <footer class="lab-footer"><strong>我更推荐 A。</strong>校园光感比较容易同时获得学生的亲近感和家长的信任；B 更鲜明，C 更有文化识别度。<br>本页是方向稿，不是正式方案。所有家长、联系方式和认证均为模拟，12 小时规则与原产品一致。概念图并非真实复旦校园照片。</footer>
+ <script>
+  let screen='home',theme='a';
+  const initial=new URLSearchParams(location.search);
+  function setScreen(value){screen=value;document.querySelectorAll('[data-screen]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.screen===screen)));document.querySelectorAll('iframe[data-theme]').forEach(frame=>{const url=new URL('../../',location.href);url.searchParams.set('design',frame.dataset.theme);url.searchParams.set('screen',screen);frame.src=url.href;});document.querySelectorAll('.direction').forEach(section=>{const url=new URL('../../',location.href);url.searchParams.set('design',section.dataset.theme);url.searchParams.set('screen',screen);section.querySelector('.open-link').href=url.href;});}
+  function setTheme(value){theme=value;document.querySelectorAll('.theme-tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.theme===theme)));document.querySelectorAll('.direction').forEach(section=>section.classList.toggle('selected',section.dataset.theme===theme));}
+  document.querySelectorAll('[data-screen]').forEach(button=>button.addEventListener('click',()=>setScreen(button.dataset.screen)));
+  document.querySelectorAll('.theme-tabs button').forEach(button=>button.addEventListener('click',()=>setTheme(button.dataset.theme)));
+  if(['a','b','c'].includes(initial.get('theme')))setTheme(initial.get('theme'));
+  if(['home','student-list','student-contact','parent-form'].includes(initial.get('screen')))setScreen(initial.get('screen'));
+ </script>
+</body>
+</html>

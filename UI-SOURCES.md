@@ -45,3 +45,12 @@
 - GitHub 连接器检索了 `TDesignOteam/tdesign-uniapp-starter-apply` 的 `tag-filter.vue`，本轮检索未返回文件；直接复用本地已有、已记录许可来源的 ChoiceGroup，详见本文件早期条目。
 - WeeklyPeriods 使用同样的语义选择按钮，增加星期×粗时段网格；保留原 MIT 许可证。新 UI 只做可用的手机布局。
 - 新规则集中于 `src/platform.mjs`，旧试课组件和引擎保留但不在新版首页使用。
+
+## 2026-10-27 三种移动 UI 方向预览
+
+- 保留 Vue + uni-app + `@tdesign/uniapp` 0.8.1（MIT）。直接复用本项目 ChoiceGroup、WeeklyPeriods 和 TDesign 图标；没有增加依赖或改变 V2 引擎。
+- 使用 GitHub 连接器读取 Tencent 官方 `tdesign-miniprogram` 的 [uni-app Cell 实现](https://github.com/Tencent/tdesign-miniprogram/blob/develop/packages/uniapp-components/cell/cell.vue)，文件 SHA `8e6030ceb37694f3343433ffe9a8d900e98d30ce`，MIT。核对图标、标题、说明、右箭头及按压反馈的移动行结构；没有拷入另一套 Cell 或替换已用组件。现有许可文件保持原位。
+- `design-taste-frontend` 指导审视、方向差异与视觉验收；`prompt-engineering-patterns`（wshobson/agents，MIT，文件 SHA `869548fa7b265c81dd54b3407fd06e61c1fc8ea6`）用于组织明确的目标、约束、输出和验证。完整执行提示词见 UI-REDESIGN-PROMPT.md。
+- 新增 `design-preview.css`：三套色彩、字体、形状与布局令牌，全部限定于显式预览类；新增静态比较页 `src/static/design-lab/index.html`。选中勾号独立定位，避免影响文字居中。
+- 本地素材 `src/static/design-lab/assets/campus-light.png`：内置 image_gen 原创校园书桌概念图，无人物、校徽或可识别的大学建筑；不是实拍复旦校园。生成提示词摘要见 DESIGN-BRIEF-2026-10-27.md。用固定尺寸容器预留加载空间。系统中文字体、图标来自已有本地依赖，没有新增远程字体或人物照片。
+- 三套预览的业务字段及数据一致；主题使用独立模拟存储键，每次直接打开预览从同一组样例开始。当前 V4 演示资料不被预览覆盖。默认地址仍为原 V2 界面；只有 `?design=a/b/c` 进入方向稿。
