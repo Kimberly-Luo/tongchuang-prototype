@@ -54,3 +54,11 @@
 - 新增 `design-preview.css`：三套色彩、字体、形状与布局令牌，全部限定于显式预览类；新增静态比较页 `src/static/design-lab/index.html`。选中勾号独立定位，避免影响文字居中。
 - 本地素材 `src/static/design-lab/assets/campus-light.png`：内置 image_gen 原创校园书桌概念图，无人物、校徽或可识别的大学建筑；不是实拍复旦校园。生成提示词摘要见 DESIGN-BRIEF-2026-10-27.md。用固定尺寸容器预留加载空间。系统中文字体、图标来自已有本地依赖，没有新增远程字体或人物照片。
 - 三套预览的业务字段及数据一致；主题使用独立模拟存储键，每次直接打开预览从同一组样例开始。当前 V4 演示资料不被预览覆盖。默认地址仍为原 V2 界面；只有 `?design=a/b/c` 进入方向稿。
+
+## 2026-10-27 用户选定 C：正式手机 UI
+
+- 用户选择 C「同窗来信」，默认首页及所有流程页面使用 C，保留原 `tongchuang-platform-v4` 数据。A/B 比较页作为方向档案保留，C 预览仍隔离样例资料。
+- 继续复用已锁定的 TDesign 0.8.1、现有 ChoiceGroup、WeeklyPeriods 及 TDesign `check` / `search` 图标。无依赖变更；Vue + uni-app 技术栈不变。
+- 本轮使用 GitHub 连接器核对官方 [steps.vue](https://github.com/Tencent/tdesign-miniprogram/blob/develop/packages/uniapp-components/steps/steps.vue)，文件 SHA `129feb4ee229dfca4d966055d23c9cc99668002a`；官方 LICENSE 的文件 SHA `789cbde93f8c4f2910c998fb926cc93c97ceeabf`，MIT。参考只读步骤与真实状态驱动模式；本地 ContactProgress 复用既有 claim 数据和图标，实现两方只读状态展示，没有拷入新版 Steps 或升级依赖。原许可证保持原位。
+- 新增 `book-theme.css`：C 的正式字阶、表单、状态、深色令牌、模态框和减少动态效果规则。CSS 进入/返回约 220ms，勾选约 160ms，操作与结果反馈只使用短时 opacity/transform；未为此引入动效库。
+- 继续使用已生成的本地书桌概念图；本轮没有新生成人物或校园照片。宋体限于展示标题，无衬线用于表单与正文。浅色先呈现用户所选方案，深色以墨黑和暖灰适配，并可手动切换和记忆偏好。

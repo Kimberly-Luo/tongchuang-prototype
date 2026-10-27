@@ -1,7 +1,8 @@
 <script setup>
-import {computed,onUnmounted,reactive,ref} from 'vue';
+import {computed,nextTick,onUnmounted,reactive,ref,watch} from 'vue';
 import ChoiceGroup from '../../components/ChoiceGroup.vue';
 import WeeklyPeriods from '../../components/WeeklyPeriods.vue';
+import ContactProgress from '../../components/ContactProgress.vue';
 import campusLight from '../../static/design-lab/assets/campus-light.png';
 import {HOUR,SUBJECTS,clone,money,slotLabel,normalizeEmail,validEmail,createPlatformState,registerStudent,publishRequest,listRequests,claimRequest,contactDetail,confirmContact,expireClaims} from '../../platform.mjs';
 const previewQuery=typeof window!=='undefined'?new URLSearchParams(window.location.search):new Map();
@@ -12,7 +13,10 @@ const storageKey=designPreview?`tongchuang-design-preview-${designPreview}`:'ton
 let saved;
 try{saved=uni.getStorageSync(storageKey);if(saved?.version!==4||!Array.isArray(saved.students)||!Array.isArray(saved.requests)||!Array.isArray(saved.claims))saved=null;}catch{saved=null;}
 const state=reactive(designPreview?createPlatformState():(saved||createPlatformState()));
-const page=ref('home'),message=ref(''),error=ref(''),registerStep=ref(0),demoParent=ref(false),clock=ref(Date.now());
+let savedDark=false;try{savedDark=uni.getStorageSync('tongchuang-color-mode')==='dark';}catch{}
+const darkMode=ref(savedDark);
+watch(darkMode,value=>{try{uni.setStorageSync('tongchuang-color-mode',value?'dark':'light');}catch{/* Theme persistence is optional; data-save errors remain visible in persist(). */}if(typeof document!=='undefined')document.documentElement.dataset.tongchuangTheme=value?'dark':'light';},{immediate:true});
+const page=ref('home'),message=ref(''),error=ref(''),registerStep=ref(0),demoParent=ref(false),clock=ref(Date.now()),pageMotion=ref('forward');
 const student=computed(()=>state.students.find(s=>s.id===state.studentId));
 const currentClaim=computed(()=>state.claims.find(c=>c.studentId===state.studentId&&c.status==='active'));
 const lastClaim=computed(()=>state.claims.find(c=>c.studentId===state.studentId));
@@ -25,13 +29,14 @@ const parentForm=reactive({name:'',subjects:[],slots:[],low:230,high:270,gender:
 const now=()=>clock.value+state.offset;
 function persist(){try{uni.setStorageSync(storageKey,clone(state));}catch{throw Error('本机保存失败，请保持页面打开并检查浏览器存储设置');}}
 function notify(text){message.value=text;error.value='';}
-function run(fn){message.value='';error.value='';try{fn();persist();}catch(e){error.value=e.message;}}
-function go(to){page.value=to;message.value='';error.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
+function reportError(text){error.value=text;nextTick(()=>uni.pageScrollTo({scrollTop:0,duration:0}));}
+function run(fn){message.value='';error.value='';try{fn();persist();}catch(e){reportError(e.message);}}
+function go(to){const depth={home:0,'student-register':1,'parent-form':1,'student-list':2,'parent-status':2,'student-contact':3};pageMotion.value=depth[to]<depth[page.value]?'back':'forward';page.value=to;message.value='';error.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
 function showSuccessNotice(){const claim=lastClaim.value;if(claim?.status==='success'&&!claim.studentNotified){claim.studentNotified=true;uni.showModal({title:'本次接单已完成',content:'家长需求已移出匹配池。下次接单请重新注册，并重新选择科目和可授课时间。',showCancel:false,confirmText:'知道了'});persist();}}
 function enterStudent(){go(student.value?'student-list':'student-register');showSuccessNotice();}
 function enterParent(){demoParent.value=false;go(parentRequest.value?'parent-status':'parent-form');}
-function sendCode(){error.value='';if(!validEmail(studentForm.email)){error.value='邮箱后缀只支持 @m.fudan.edu.cn';return;}studentForm.verifiedEmail=normalizeEmail(studentForm.email);studentForm.demoCode='2026';notify('模拟验证码 2026 已填入，没有发送真实邮件。');}
-function verifyEmail(){error.value='';if(!validEmail(studentForm.email)||studentForm.demoCode!=='2026'||normalizeEmail(studentForm.email)!==studentForm.verifiedEmail){error.value='请先获取当前邮箱的模拟验证码';return;}registerStep.value=1;message.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
+function sendCode(){error.value='';if(!validEmail(studentForm.email)){reportError('邮箱后缀只支持 @m.fudan.edu.cn');return;}studentForm.verifiedEmail=normalizeEmail(studentForm.email);studentForm.demoCode='2026';notify('模拟验证码 2026 已填入，没有发送真实邮件。');}
+function verifyEmail(){error.value='';if(!validEmail(studentForm.email)||studentForm.demoCode!=='2026'||normalizeEmail(studentForm.email)!==studentForm.verifiedEmail){reportError('请先获取当前邮箱的模拟验证码');return;}registerStep.value=1;message.value='';uni.pageScrollTo({scrollTop:0,duration:0});}
 function signup(){run(()=>{registerStudent(state,{...clone(studentForm),low:Math.round(Number(studentForm.low)*100),high:Math.round(Number(studentForm.high)*100)},now());go('student-list');notify('模拟注册完成。以下是与你的科目、时段和报价匹配的家长需求。');});}
 function registerAgain(){Object.assign(studentForm,{email:student.value?.email||'',demoCode:'',verifiedEmail:'',name:'',subjects:[],slots:[],low:230,high:270,gender:student.value?.gender||'女'});registerStep.value=0;go('student-register');}
 function publish(){run(()=>{publishRequest(state,{...clone(parentForm),low:Math.round(Number(parentForm.low)*100),high:Math.round(Number(parentForm.high)*100)},now());demoParent.value=false;go('parent-status');notify('需求已进入本机匹配池，等待合适的学生选择。');});}
@@ -57,18 +62,18 @@ refreshExpiry();const timer=setInterval(refreshExpiry,1000);onUnmounted(()=>clea
 </script>
 
 <template>
- <view :class="['platform-app',designPreview?`design-${designPreview}`:'']">
-  <view class="p-demo">流程初版 · 本机模拟 <text>邮箱与联系方式均为演示</text></view>
+ <view :class="['platform-app',`design-${designPreview||'c'}`,{'is-preview':!!designPreview,'book-dark':darkMode}]">
+  <view class="p-demo">本机演示 · 非真实交易 <text>邮箱验证为模拟</text></view>
   <view class="p-header"><button class="p-brand" @tap="go('home')">同窗</button><button v-if="page!=='home'" class="p-link" @tap="go('home')">切换身份 ↗</button><text v-else class="p-caption">复旦学生 · 家长需求平台</text></view>
   <view class="p-main">
+   <view :key="`${page}-${registerStep}`" :class="['p-page',`page-${page}`,`page-${pageMotion}`]">
    <view v-if="error" class="p-alert p-alert-error" role="alert">{{error}}<button class="p-link" @tap="error=''">关闭</button></view>
    <view v-if="message" class="p-alert" role="status">{{message}}<button class="p-link" @tap="message=''">关闭</button></view>
    <template v-if="page==='home'">
-    <view v-if="designPreview" class="design-hero">
+    <view class="design-hero">
      <view class="design-hero-copy"><text class="design-display"><text v-for="line in previewCopy.headline" :key="line" class="design-display-line">{{line}}</text></text><text class="design-description">{{previewCopy.copy}}</text></view>
      <image class="design-hero-image" :src="campusLight" mode="aspectFill" aria-label="概念图：阳光下的校园书桌与书本"/>
     </view>
-    <view v-else class="p-intro"><text class="p-eyebrow">从你的身份开始</text><text class="p-title">同窗，连接所需。</text><text class="p-copy">家长发布需求，复旦学生主动联系。具体上课时间和合作细节，由你们一起商量。</text></view>
     <button class="role-entry role-student" @tap="enterStudent"><view v-if="designPreview" class="design-role-symbol"><t-icon name="user" size="25"/></view><view><text class="role-title">我是学生</text><text class="role-copy">校园邮箱注册 · 查看匹配的家长需求</text></view><text class="role-arrow">↗</text></button>
     <button class="role-entry" @tap="enterParent"><view v-if="designPreview" class="design-role-symbol"><t-icon name="home" size="25"/></view><view><text class="role-title">我是家长</text><text class="role-copy">直接填写要求 · 留下联系方式</text></view><text class="role-arrow">↗</text></button>
     <view class="p-panel p-muted-panel"><text class="p-section-title">先连接，再共同决定</text><text class="p-copy">学生选中需求后保留 12 小时。只有双方都点“联系好了”，才会结束本次匹配；任一方未联系好或超时，需求重新开放。</text></view>
@@ -94,20 +99,20 @@ refreshExpiry();const timer=setInterval(refreshExpiry,1000);onUnmounted(()=>clea
    </template>
    <template v-else-if="page==='student-list'">
     <view class="p-intro"><text class="p-eyebrow">学生端 · {{student?.name||'复旦同学'}}</text><text class="p-title">{{student?.active?'合适的家长需求':'本次接单已完成'}}</text><text class="p-copy">{{student?.active?'先看科目、报价和时段。选择后进入家长详情，查看联系方式和留言。':'双方已确认联系好。家长信息已移出匹配池；下次接单需要重新注册并重新选择授课时段。'}}</text></view>
-    <view v-if="!student?.active" class="p-panel"><text class="p-section-title">下次接单，重新填写可授课时间</text><text class="p-copy">沿用邮箱也需要重新完成模拟注册，本次资料不会自动用于下一单。</text><button class="p-primary" @tap="registerAgain">重新注册接单</button></view>
+    <view v-if="!student?.active" class="p-panel result-panel result-success"><t-icon class="result-icon" name="check" size="27"/><text class="p-section-title">下次接单，重新填写可授课时间</text><text class="p-copy">沿用邮箱也需要重新完成模拟注册，本次资料不会自动用于下一单。</text><button class="p-primary" @tap="registerAgain">重新注册接单</button></view>
     <template v-else>
      <view class="p-profile-summary"><text>{{student.subjects.join('、')}} · {{student.gender}} · ¥{{money(student.low)}}-{{money(student.high)}} / 小时</text><text>{{student.slots.map(slotLabel).join('、')}}</text></view>
-     <view v-if="currentClaim" class="p-panel"><text class="p-status">联系中 · 还剩 {{remain(currentClaim)}}</text><text class="p-section-title">有一位家长正在等待联系结果</text><text class="p-copy">你：{{currentClaim.studentResult==='yes'?'已点联系好了':'尚未确认'}} · 家长：{{currentClaim.parentResult==='yes'?'已点联系好了':'尚未确认'}}</text><button class="p-primary" @tap="go('student-contact')">继续查看家长详情</button></view>
+     <view v-if="currentClaim" class="p-panel contact-state"><text class="p-status">联系中 · 还剩 {{remain(currentClaim)}}</text><text class="p-section-title">有一位家长正在等待联系结果</text><ContactProgress :claim="currentClaim"/><button class="p-primary" @tap="go('student-contact')">继续查看家长详情</button></view>
      <template v-else>
-      <text v-if="lastClaim?.status==='expired'||lastClaim?.status==='declined'" class="p-hint">上次联系{{lastClaim.status==='expired'?'已超时':'未达成一致'}}，家长需求已退回匹配池。</text>
+      <view v-if="lastClaim?.status==='expired'||lastClaim?.status==='declined'" class="return-notice" role="status"><text class="p-section-title">{{lastClaim.status==='expired'?'联系已超时':'本次未联系好'}}</text><text class="p-copy">家长需求已退回匹配池，你可以继续选择合适的需求。</text></view>
       <view v-for="p in parents" :key="p.id" class="p-panel parent-card">
-       <view class="p-card-head"><view class="design-parent-name"><text v-if="designPreview" class="design-parent-monogram">{{p.name.slice(0,1)}}</text><text class="p-section-title">{{p.name}}</text></view><text class="p-badge">{{p.isDemo?'模拟需求':'待联系'}}</text></view>
-       <text class="p-card-subjects">{{p.subjects.join('、')}}</text><view v-if="designPreview" class="design-card-metrics"><view><text class="design-metric-label">每小时预算</text><text class="design-metric-value">¥{{money(p.low)}}-{{money(p.high)}}</text></view><view class="design-metric-gender"><text class="design-metric-label">学生性别</text><text class="design-gender-value">{{p.gender}}</text></view></view><text v-else class="p-copy">预算 ¥{{money(p.low)}}-{{money(p.high)}} / 小时 · 性别要求：{{p.gender}}</text>
+       <view class="p-card-head"><view class="design-parent-name"><text class="design-parent-monogram">{{p.name.slice(0,1)}}</text><text class="p-section-title">{{p.name}}</text></view><text class="p-badge">{{p.isDemo?'模拟需求':'待联系'}}</text></view>
+       <text class="p-card-subjects">{{p.subjects.join('、')}}</text><view class="design-card-metrics"><view><text class="design-metric-label">每小时预算</text><text class="design-metric-value">¥{{money(p.low)}}-{{money(p.high)}}</text></view><view class="design-metric-gender"><text class="design-metric-label">学生性别</text><text class="design-gender-value">{{p.gender}}</text></view></view>
        <view class="p-tags"><text v-for="slot in p.slots" :key="slot" :class="['p-tag',{'p-tag-match':p.quote.commonSlots.includes(slot)}]">{{slotLabel(slot)}}</text></view>
        <text class="p-hint">共同报价 ¥{{money(p.quote.low)}}-{{money(p.quote.high)}} / 小时 · {{p.quote.commonSlots.map(slotLabel).join('、')}}</text>
        <button class="p-primary" @tap="chooseParent(p.id)">选择并查看家长详情</button><text class="p-hint">点击后保留 12 小时；联系方式与留言仅在详情显示。</text>
       </view>
-      <view v-if="!parents.length" class="p-panel p-empty"><text class="p-section-title">暂时没有合适的需求</text><text class="p-copy">需要同时满足科目覆盖、性别要求、共同粗时段和课时费交集。可以先让家长发布一条符合条件的模拟需求。</text><button class="p-secondary" @tap="enterParent">切换到家长端</button></view>
+      <view v-if="!parents.length" class="p-panel p-empty"><t-icon class="result-icon" name="search" size="27"/><text class="p-section-title">暂时没有合适的需求</text><text class="p-copy">需要同时满足科目覆盖、性别要求、共同粗时段和课时费交集。可以先让家长发布一条符合条件的模拟需求。</text><button class="p-secondary" @tap="enterParent">切换到家长端</button></view>
      </template>
     </template>
    </template>
@@ -115,10 +120,10 @@ refreshExpiry();const timer=setInterval(refreshExpiry,1000);onUnmounted(()=>clea
     <button class="p-link p-back" @tap="go('student-list')">← 返回学生端</button>
     <template v-if="currentClaim&&activeDetail">
      <view class="p-intro"><text class="p-eyebrow">家长详情 · 主动联系</text><text class="p-title">{{activeDetail.name}}</text><text class="p-status">联系保留中 · 还剩 {{remain(currentClaim)}}</text></view>
-     <view class="p-panel"><text class="p-section-title">{{activeDetail.subjects.join('、')}}</text><text class="p-copy">性别要求：{{activeDetail.gender}} · 预算 ¥{{money(activeDetail.low)}}-{{money(activeDetail.high)}} / 小时</text><text class="p-copy">共同可上课时段：{{currentClaim.quote.commonSlots.map(slotLabel).join('、')}}</text><text class="p-copy">共同报价 ¥{{money(currentClaim.quote.low)}}-{{money(currentClaim.quote.high)}} / 小时，具体钟点和最终价格请双方协商。</text></view>
      <view class="p-panel contact-card"><text class="p-label">{{activeDetail.contactType}}联系方式</text><text class="contact-value" selectable>{{activeDetail.contact}}</text><text v-if="activeDetail.isDemo" class="p-hint">此为模拟信息，没有真实家长可以联系。</text><text class="p-label">家长想说的话</text><text class="p-note" selectable>{{activeDetail.note||'家长暂未留言。'}}</text></view>
+     <view class="p-panel request-recap"><text class="p-section-title">{{activeDetail.subjects.join('、')}}</text><text class="p-copy">性别要求：{{activeDetail.gender}} · 预算 ¥{{money(activeDetail.low)}}-{{money(activeDetail.high)}} / 小时</text><text class="p-copy">共同可上课时段：{{currentClaim.quote.commonSlots.map(slotLabel).join('、')}}</text><text class="p-copy">共同报价 ¥{{money(currentClaim.quote.low)}}-{{money(currentClaim.quote.high)}} / 小时，具体钟点和最终价格请双方协商。</text></view>
      <view class="fee-placeholder"><text class="p-section-title">收费提示（预留）</text><text class="p-copy">这里等待你提供正式提示内容。当前未设置收费金额，也不会发起付款。</text></view>
-     <view class="p-panel"><text class="p-section-title">联系结果</text><text class="p-copy">你：{{currentClaim.studentResult==='yes'?'已点联系好了':'尚未确认'}} · 家长：{{currentClaim.parentResult==='yes'?'已点联系好了':'尚未确认'}}</text><text class="p-hint">双方都需在期限内点击联系好了；任一方没联系好或超时，需求退回。</text><view class="p-confirm"><button class="p-secondary" @tap="respond('student','no')">没联系好</button><button class="p-primary" @tap="respond('student','yes')">联系好了</button></view></view>
+     <view class="p-panel contact-state"><text class="p-section-title">联系结果</text><ContactProgress :claim="currentClaim"/><text class="p-hint">双方都需在期限内点击联系好了；任一方没联系好或超时，需求退回。</text><view class="p-confirm"><button class="p-secondary" @tap="respond('student','no')">没联系好</button><button class="p-primary" :disabled="currentClaim.studentResult==='yes'" @tap="respond('student','yes')">联系好了</button></view></view>
      <button v-if="activeDetail.isDemo" class="p-link p-demo-switch" @tap="showDemoParent">体验这位家长的确认视角 →</button>
     </template>
     <view v-else class="p-panel"><text class="p-copy">这次联系已结束，请返回学生端查看最新状态。</text><button class="p-primary" @tap="go('student-list')">返回学生端</button></view>
@@ -128,7 +133,7 @@ refreshExpiry();const timer=setInterval(refreshExpiry,1000);onUnmounted(()=>clea
     <view class="p-intro"><text class="p-eyebrow">家长端 · 直接发布需求</text><text class="p-title">把你的要求留下来</text><text class="p-copy">无需校园邮箱注册。学生先看到粗要求，选择后进入详情查看联系方式与留言。</text></view>
     <view class="p-panel">
      <label class="p-label">称呼（选填）</label><input v-model="parentForm.name" class="p-input" placeholder="例如：王家长" maxlength="12"/>
-     <label class="p-label">需要辅导的科目 · 多选</label><ChoiceGroup v-model="parentForm.subjects" :options="SUBJECTS" multiple :columns="3"/>
+     <label class="p-label">想辅导哪几科 · 多选</label><ChoiceGroup v-model="parentForm.subjects" :options="SUBJECTS" multiple :columns="3"/>
      <label class="p-label">可以上课的时段 · 多选</label><WeeklyPeriods v-model="parentForm.slots"/><text class="p-hint">有任一共同粗时段即可匹配，具体几点请与学生商量。</text>
      <label class="p-label">每小时课时费预算（元）</label><view class="p-prices"><input v-model="parentForm.low" class="p-input" type="digit" aria-label="家长最低课时费"/><text>至</text><input v-model="parentForm.high" class="p-input" type="digit" aria-label="家长最高课时费"/></view><text class="p-hint">最低 160 元，区间跨度不超过 50 元；实际报价须处于双方交集。</text>
      <label class="p-label">对学生的性别要求</label><ChoiceGroup v-model="parentForm.gender" :options="['无所谓','女','男']" :columns="3"/>
@@ -140,16 +145,17 @@ refreshExpiry();const timer=setInterval(refreshExpiry,1000);onUnmounted(()=>clea
    </template>
    <template v-else-if="page==='parent-status'">
     <view class="p-intro"><text class="p-eyebrow">家长端{{demoParent?' · 演示确认视角':''}}</text><text class="p-title">{{parentRequest?.status==='matched'?'已经联系好了':parentRequest?.status==='claimed'?'有学生选择了你的需求':'你的需求已发布'}}</text></view>
-    <view v-if="parentRequest?.status==='matched'" class="p-panel"><text class="p-section-title">双方确认，本次匹配结束</text><text class="p-copy">你的需求已从匹配池移除。学生下次接单需要重新注册并选择时间。</text><button class="p-secondary" @tap="enterStudent">查看学生端提示</button></view>
+    <view v-if="parentRequest?.status==='matched'" class="p-panel result-panel result-success"><t-icon class="result-icon" name="check" size="27"/><text class="p-section-title">双方确认，本次匹配结束</text><text class="p-copy">你的需求已从匹配池移除。学生下次接单需要重新注册并选择时间。</text><button class="p-secondary" @tap="enterStudent">查看学生端提示</button></view>
     <view v-else-if="parentRequest" class="p-panel">
      <text class="p-section-title">{{parentRequest.name}} · {{parentRequest.subjects.join('、')}}</text><text class="p-copy">预算 ¥{{money(parentRequest.low)}}-{{money(parentRequest.high)}} / 小时 · 性别要求：{{parentRequest.gender}}</text><view class="p-tags"><text v-for="slot in parentRequest.slots" :key="slot" class="p-tag">{{slotLabel(slot)}}</text></view>
-     <template v-if="parentClaim?.status==='active'"><text class="p-status">等待双方确认 · 还剩 {{remain(parentClaim)}}</text><text class="p-copy">{{state.students.find(s=>s.id===parentClaim.studentId)?.name}}正在联系你。</text><text class="p-copy">你：{{parentClaim.parentResult==='yes'?'已点联系好了':'尚未确认'}} · 学生：{{parentClaim.studentResult==='yes'?'已点联系好了':'尚未确认'}}</text><text class="p-hint">双方在 12 小时内都点联系好了才结束；只要一方点没联系好，或到期未同时确认，就退回匹配池。</text><view class="p-confirm"><button class="p-secondary" @tap="respond('parent','no')">没联系好</button><button class="p-primary" @tap="respond('parent','yes')">联系好了</button></view></template>
+     <template v-if="parentClaim?.status==='active'"><text class="p-status">等待双方确认 · 还剩 {{remain(parentClaim)}}</text><text class="p-copy">{{state.students.find(s=>s.id===parentClaim.studentId)?.name}}正在联系你。</text><ContactProgress :claim="parentClaim" perspective="parent"/><text class="p-hint">双方在 12 小时内都点联系好了才结束；只要一方点没联系好，或到期未同时确认，就退回匹配池。</text><view class="p-confirm"><button class="p-secondary" @tap="respond('parent','no')">没联系好</button><button class="p-primary" :disabled="parentClaim.parentResult==='yes'" @tap="respond('parent','yes')">联系好了</button></view></template>
      <template v-else><text class="p-status">{{parentRequest.lastResult?'上次联系未完成，已重新开放':'匹配池中 · 等待学生主动联系'}}</text><text class="p-copy">联系方式和留言仅在学生选择后的家长详情页展示。</text><button v-if="!parentRequest.isDemo" class="p-secondary" @tap="editParent">修改需求</button></template>
     </view>
     <view v-else class="p-panel"><text class="p-copy">还没有发布需求。</text><button class="p-primary" @tap="go('parent-form')">填写家长需求</button></view>
     <button v-if="demoParent" class="p-link p-demo-switch" @tap="enterStudent">返回学生视角 →</button>
    </template>
-   <view class="p-tools"><text class="p-hint">同窗流程初版 · 本机体验，非真实交易</text><view><button v-if="state.claims.some(c=>c.status==='active')" class="p-link" @tap="advance">演示：推进 13 小时</button><button class="p-link" @tap="resetDemo">重置本机体验</button></view></view>
+   </view>
+   <view class="p-tools"><text class="p-hint">同窗 · 本机体验，非真实交易</text><view><button v-if="state.claims.some(c=>c.status==='active')" class="p-link" @tap="advance">演示：推进 13 小时</button><button class="p-link" :aria-pressed="darkMode" @tap="darkMode=!darkMode">{{darkMode?'切换浅色':'切换深色'}}</button><button class="p-link" @tap="resetDemo">重置本机体验</button></view></view>
   </view>
  </view>
 </template>

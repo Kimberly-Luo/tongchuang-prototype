@@ -1,6 +1,6 @@
 # 同窗 UI 方向试稿
 
-状态：用户已提供完整执行要求，三套真实页面方向预览已制作。尚未选择最终方案；默认产品界面暂不切换。正式提示词见 UI-REDESIGN-PROMPT.md，预览与验收见 UI-DIRECTIONS.md。
+状态：用户已明确选择 C「同窗来信」，现已实施为默认界面。下文 A/B/C 为此前方向提案的历史记录；本次实施与验证见 UI-C-IMPLEMENTATION.md。正式提示词见 UI-REDESIGN-PROMPT.md。
 
 日期：2026-10-27。来源：本任务用户要求调用 taste 与 prompt 类技能，让完整前端更加吸睛。
 

@@ -13,3 +13,4 @@ onHide(() => {
 <!-- Global by design: the index page visual system must also reach child form components. -->
 <style src="./pages/index/platform.css"></style>
 <style src="./pages/index/design-preview.css"></style>
+<style src="./pages/index/book-theme.css"></style>

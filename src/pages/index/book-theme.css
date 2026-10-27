@@ -1,0 +1,112 @@
+/* Selected direction C: Chinese book typography, ruled sections, square controls.
+   The A/B/C comparison styles remain an archive; these are the finished C rules. */
+page{background:#f5f4ef;color:#2b2a27;scroll-padding-block:90px}
+.platform-app.design-c{--ui-success:#286044;--ui-success-tint:#e8efe8;--ui-warning:#785021;--ui-warning-tint:#f2e9d9;--ui-error:#a83024;--ui-error-tint:#f8e9e5;color-scheme:light;-webkit-text-size-adjust:100%}
+.design-c .p-demo{min-height:32px!important;padding-top:max(7px,env(safe-area-inset-top))!important;font-size:11px!important;line-height:1.5;gap:8px}
+.design-c .p-caption{font-size:12px!important}
+.design-c .p-main{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.design-c .p-page{min-width:0}
+.design-c .p-copy{font-size:15px!important;line-height:1.8!important}
+.design-c .p-hint{font-size:13px!important;line-height:1.8!important}
+.design-c .p-label{font-size:15px!important;line-height:1.5}
+.design-c .p-section-title{font-size:19px;line-height:1.5}
+.design-c .p-input,.design-c .p-textarea{font-size:16px!important;scroll-margin-block:90px;caret-color:var(--ui-accent)}
+.design-c .p-input .uni-input-input,.design-c .p-textarea .uni-textarea-textarea{font-size:16px!important}
+.design-c .p-input:focus-within,.design-c .p-textarea:focus-within{border-color:var(--ui-accent);outline:1px solid var(--ui-accent);outline-offset:0}
+.design-c .p-textarea{min-height:144px;line-height:1.8}
+.design-c .p-prices{color:var(--ui-muted)}
+.design-c .p-primary,.design-c .p-secondary{font-size:15px!important;min-height:52px;line-height:1.45}
+.design-c .p-secondary{border-color:var(--ui-muted)}
+.design-c .p-primary[disabled]{background:var(--ui-tint)!important;border-color:var(--ui-line)!important;color:var(--ui-copy)!important;opacity:1}
+.design-c .p-code-row .p-secondary{font-size:13px!important;white-space:nowrap}
+.design-c .p-alert{align-items:center;font-size:14px!important;line-height:1.7;background:var(--ui-tint);border-left:3px solid var(--ui-accent);color:var(--ui-ink)}
+.design-c .p-alert .p-link{min-width:44px;min-height:44px;color:inherit!important}
+.design-c .p-alert-error{background:var(--ui-error-tint)!important;border-color:var(--ui-error)!important;color:var(--ui-error)!important}
+.design-c .role-entry{transition:background-color .16s ease,transform .16s ease}
+.design-c .role-entry:active{background:var(--ui-tint)!important;opacity:1!important;transform:translateX(3px)!important}
+.design-c .role-copy{font-size:13px!important}
+.design-c .role-arrow{flex:0 0 44px;width:44px!important;height:44px!important}
+.design-c .design-description{max-width:195px;font-size:14px;line-height:1.8}
+.design-c .design-hero-image{object-position:80% center}
+.design-c .p-muted-panel .p-copy{font-size:14px!important}
+.design-c .p-profile-summary{border-radius:0;padding:15px;background:var(--ui-tint)}
+.design-c .p-profile-summary text{font-size:13px;line-height:1.8}
+.design-c .parent-card{margin-top:25px!important;padding-bottom:25px!important}
+.design-c .design-metric-label{font-size:13px}
+.design-c .design-metric-value{font-size:28px;line-height:1.2;letter-spacing:-.5px}
+.design-c .design-metric-gender{align-self:end;padding-bottom:1px}
+.design-c .p-card-subjects{margin-top:20px!important}
+.design-c .p-badge{font-size:12px!important;line-height:1.5}
+.design-c .p-tag{font-size:13px!important;line-height:1.5}
+.design-c .p-tag-match{color:var(--ui-accent)!important}
+.design-c .p-status{font-size:15px!important;font-weight:650;margin:16px 0 18px;padding:12px 14px;border-left:2px solid var(--ui-accent);line-height:1.6}
+.design-c .page-student-contact .p-intro{padding-bottom:0}
+.design-c .contact-card{margin-top:0!important;padding:20px 17px!important}
+.design-c .contact-card .p-label{margin-top:22px!important;margin-bottom:8px!important}
+.design-c .contact-card .p-label:first-child{margin-top:0!important}
+.design-c .contact-value{font-size:25px!important;line-height:1.5!important;letter-spacing:-.5px}
+.design-c .p-note{font-size:15px!important;line-height:1.85!important}
+.design-c .request-recap{margin-top:8px!important;padding-top:16px!important;padding-bottom:18px!important}
+.design-c .request-recap .p-copy{font-size:14px!important;line-height:1.75!important;margin-top:8px}
+.design-c .fee-placeholder{padding:17px!important;border-color:var(--ui-muted);background:var(--ui-bg)}
+.design-c .fee-placeholder .p-section-title{font-size:16px}
+.design-c .fee-placeholder .p-copy{font-size:14px!important;color:var(--ui-copy)!important}
+.design-c .contact-state .p-status:first-child{margin-top:0}
+.contact-progress{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0;border-block:1px solid var(--ui-line)}
+.contact-progress-item{padding:14px 10px 15px 0;min-width:0}
+.contact-progress-item+ .contact-progress-item{border-left:1px solid var(--ui-line);padding-left:15px;padding-right:0}
+.progress-person{display:block;color:var(--ui-copy);font-size:13px;line-height:1.5}
+.progress-result{display:flex;align-items:center;gap:5px;margin-top:7px;min-height:24px;color:var(--ui-copy);font-size:14px;line-height:1.5}
+.is-confirmed .progress-result{color:var(--ui-success);font-weight:650}
+.design-c .result-success{border:1px solid var(--ui-line)!important;border-top:2px solid var(--ui-success)!important;padding:23px 17px!important;background:var(--ui-success-tint)!important}
+.result-icon{display:flex;align-items:center;justify-content:center;width:46px;height:46px;margin-bottom:17px;color:var(--ui-accent);border:1px solid var(--ui-line)}
+.result-success .result-icon{color:var(--ui-success);border-color:var(--ui-success)}
+.design-c .p-empty{border-top:1px solid var(--ui-ink)!important;padding-block:24px!important}
+.return-notice{padding:17px 15px;margin:20px 0;border-left:2px solid var(--ui-warning);background:var(--ui-warning-tint);color:var(--ui-warning)}
+.return-notice .p-section-title{font-size:17px!important;color:inherit!important}
+.return-notice .p-copy{font-size:14px!important;margin-top:7px;color:inherit!important}
+.design-c .choice-group .choice{font-size:14px;min-height:48px}
+.design-c .weekly-periods .period-choice{font-size:13px;min-height:46px}
+.design-c .choice-group .choice:active,.design-c .weekly-periods .period-choice:active{transform:scale(.97)}
+.design-c .choice-group .choice.selected::after,.design-c .weekly-periods .period-choice.picked::after{font-size:10px}
+.design-c .p-tools{margin-top:28px;padding-top:15px}
+.design-c .p-tools .p-hint{font-size:12px!important}
+.design-c .p-tools .p-link{font-size:12px;min-height:44px}
+/* The uni-app modal is outside the page root. Match the selected book theme. */
+uni-modal .uni-modal{border-radius:0;background:#f5f4ef;color:#2b2a27;max-width:340px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif}
+uni-modal .uni-modal__title{color:#2b2a27;font-size:19px;line-height:1.5;font-family:'Songti SC','STSong','SimSun',serif}
+uni-modal .uni-modal__bd{color:#5c5a54;font-size:15px;line-height:1.8;padding-bottom:24px;text-align:left;text-wrap:pretty}
+uni-modal .uni-modal__btn{min-height:52px;color:#5c5a54!important;font-size:16px}
+uni-modal .uni-modal__btn_primary{color:#a83c2c!important}
+@media(max-width:350px){
+ .design-c .p-demo{font-size:10px!important}
+ .design-c .p-caption{font-size:11px!important}
+ .design-c .p-title{font-size:27px!important}
+ .design-c .role-copy{font-size:12px!important}
+ .design-c .design-description{max-width:174px;font-size:13px}
+ .design-c .contact-value{font-size:22px!important}
+ .design-c .p-code-row{gap:6px}
+ .design-c .p-code-row .p-secondary{padding-inline:6px;font-size:12px!important}
+ .design-c .design-metric-value{font-size:25px}
+ .progress-result{font-size:13px}
+}
+.platform-app.design-c.book-dark{--ui-bg:#20211f;--ui-surface:#262722;--ui-tint:#2e2f2b;--ui-ink:#eeeae1;--ui-copy:#d0ccc2;--ui-muted:#b7b2a7;--ui-line:#606059;--ui-accent:#e9a18c;--ui-on-accent:#281b16;--ui-success:#b8d7bb;--ui-success-tint:#29342b;--ui-warning:#e7c694;--ui-warning-tint:#343027;--ui-error:#f3b09f;--ui-error-tint:#3b2824;color-scheme:dark}
+.book-dark.design-c .design-hero-image{opacity:.85;filter:grayscale(.6) brightness(.85)}
+html[data-tongchuang-theme=dark],html[data-tongchuang-theme=dark] body,html[data-tongchuang-theme=dark] uni-page-body{background:#20211f}
+html[data-tongchuang-theme=dark] uni-modal .uni-modal{background:#262722;color:#eeeae1}
+html[data-tongchuang-theme=dark] uni-modal .uni-modal__title{color:#eeeae1}
+html[data-tongchuang-theme=dark] uni-modal .uni-modal__bd,html[data-tongchuang-theme=dark] uni-modal .uni-modal__btn{color:#d0ccc2!important}
+html[data-tongchuang-theme=dark] uni-modal .uni-modal__btn_primary{color:#e9a18c!important}
+@media(prefers-reduced-motion:no-preference){
+ .design-c .p-page{animation:book-forward .22s cubic-bezier(.2,.65,.3,1) both}
+ .design-c .page-back{animation-name:book-back}
+ .design-c .p-alert,.design-c .return-notice{animation:book-notice .18s ease-out both}
+ .design-c .choice-group .choice.selected::after,.design-c .weekly-periods .period-choice.picked::after{animation:book-check .16s ease-out both}
+ .design-c .contact-progress-item.is-confirmed .progress-result{animation:book-notice .2s ease-out both}
+ .design-c .result-success .result-icon{animation:book-check .25s ease-out both}
+ @keyframes book-forward{from{opacity:0;transform:translateX(9px)}to{opacity:1;transform:translateX(0)}}
+ @keyframes book-back{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:translateX(0)}}
+ @keyframes book-notice{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+ @keyframes book-check{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+}
+@media(prefers-reduced-motion:reduce){.design-c *,.design-c *::before,.design-c *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

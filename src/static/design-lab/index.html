@@ -12,8 +12,8 @@
 </head>
 <body>
  <header class="lab-header">
-  <div class="lab-heading"><h1>同窗，三种打开方式。</h1><a href="../../">返回当前体验版 ↗</a></div>
-  <p>同样的需求，同样的操作，三套视觉语言。先选页面，再比较方向；点击「全屏体验」可以直接在手机上操作。</p>
+  <div class="lab-heading"><h1>同窗，视觉方向档案。</h1><a href="../../">返回当前体验版 ↗</a></div>
+  <p>C「同窗来信」已选定为正式方向。这里保留三套方向稿；点击「返回当前体验版」查看正式默认界面。</p>
  </header>
  <nav class="lab-controls" aria-label="预览控制">
   <div class="controls-inner">
@@ -27,28 +27,28 @@
   </div>
  </nav>
  <main class="directions">
-  <section class="direction selected" data-theme="a">
-   <div class="direction-head"><div><h2><span class="letter">A</span>晴窗<span class="recommend">推荐</span></h2><p>校园光感 / 自然、亲近、清晰</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=a">全屏体验 ↗</a></div>
+  <section class="direction" data-theme="a">
+   <div class="direction-head"><div><h2><span class="letter">A</span>晴窗</h2><p>校园光感 / 自然、亲近、清晰</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=a">全屏体验 ↗</a></div>
    <div class="frame"><iframe title="A 晴窗校园光感预览" data-theme="a" src="../../?design=a&screen=home"></iframe></div>
   </section>
   <section class="direction" data-theme="b">
    <div class="direction-head"><div><h2><span class="letter">B</span>Signal</h2><p>轻未来 / 锐利、有序、轻盈</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=b">全屏体验 ↗</a></div>
    <div class="frame"><iframe title="B Signal轻未来预览" data-theme="b" src="../../?design=b&screen=home"></iframe></div>
   </section>
-  <section class="direction" data-theme="c">
-   <div class="direction-head"><div><h2><span class="letter">C</span>同窗来信</h2><p>新中式书刊 / 克制、有文化感</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=c">全屏体验 ↗</a></div>
+  <section class="direction selected" data-theme="c">
+   <div class="direction-head"><div><h2><span class="letter">C</span>同窗来信<span class="recommend">已选定</span></h2><p>新中式书刊 / 克制、有文化感</p></div><a class="open-link" target="_blank" rel="noopener" href="../../?design=c">全屏体验 ↗</a></div>
    <div class="frame"><iframe title="C 同窗来信新中式书刊预览" data-theme="c" src="../../?design=c&screen=home"></iframe></div>
   </section>
  </main>
- <footer class="lab-footer"><strong>我更推荐 A。</strong>校园光感比较容易同时获得学生的亲近感和家长的信任；B 更鲜明，C 更有文化识别度。<br>本页是方向稿，不是正式方案。所有家长、联系方式和认证均为模拟，12 小时规则与原产品一致。概念图并非真实复旦校园照片。</footer>
+ <footer class="lab-footer"><strong>已选定 C「同窗来信」。</strong>正式界面采用纸白、朱红与中文书刊排版，A/B 作为历史方向保留。<br>本页是方向档案，正式默认界面请从上方返回。所有家长、联系方式和认证均为模拟，12 小时规则与原产品一致。概念图并非真实复旦校园照片。</footer>
  <script>
-  let screen='home',theme='a';
+  let screen='home',theme='c';
   const initial=new URLSearchParams(location.search);
   function setScreen(value){screen=value;document.querySelectorAll('[data-screen]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.screen===screen)));document.querySelectorAll('iframe[data-theme]').forEach(frame=>{const url=new URL('../../',location.href);url.searchParams.set('design',frame.dataset.theme);url.searchParams.set('screen',screen);frame.src=url.href;});document.querySelectorAll('.direction').forEach(section=>{const url=new URL('../../',location.href);url.searchParams.set('design',section.dataset.theme);url.searchParams.set('screen',screen);section.querySelector('.open-link').href=url.href;});}
   function setTheme(value){theme=value;document.querySelectorAll('.theme-tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.theme===theme)));document.querySelectorAll('.direction').forEach(section=>section.classList.toggle('selected',section.dataset.theme===theme));}
   document.querySelectorAll('[data-screen]').forEach(button=>button.addEventListener('click',()=>setScreen(button.dataset.screen)));
   document.querySelectorAll('.theme-tabs button').forEach(button=>button.addEventListener('click',()=>setTheme(button.dataset.theme)));
-  if(['a','b','c'].includes(initial.get('theme')))setTheme(initial.get('theme'));
+  setTheme(['a','b','c'].includes(initial.get('theme'))?initial.get('theme'):'c');
   if(['home','student-list','student-contact','parent-form'].includes(initial.get('screen')))setScreen(initial.get('screen'));
  </script>
 </body>
