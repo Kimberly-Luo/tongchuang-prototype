@@ -66,7 +66,7 @@ page{background:#f5f4ef;color:#2b2a27;scroll-padding-block:90px}
 .return-notice .p-section-title{font-size:17px!important;color:inherit!important}
 .return-notice .p-copy{font-size:14px!important;margin-top:7px;color:inherit!important}
 .design-c .choice-group .choice{font-size:14px;min-height:48px}
-.design-c .weekly-periods .period-choice{font-size:13px;min-height:46px}
+.platform-app.design-c .weekly-periods .period-choice{border-radius:0;font-size:13px;min-height:46px}
 .design-c .choice-group .choice:active,.design-c .weekly-periods .period-choice:active{transform:scale(.97)}
 .design-c .choice-group .choice.selected::after,.design-c .weekly-periods .period-choice.picked::after{font-size:10px}
 .design-c .p-tools{margin-top:28px;padding-top:15px}
